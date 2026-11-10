@@ -338,10 +338,10 @@ function questionCompare() {
 function questionNumberLine() {
   const n = randomInt(1, 9);
   return {
-    type: 'numberline', prompt: '0.' + n + はどこの目盛り？',
+    type: 'numberline', prompt: '0.' + n + ' はどこの目盛り？',
     answer: '0.' + n,
     hint: '0から1までを10こに分けて、左から' + n + 'つ目の目盛りを探そう。',
-    explanation: '0.' + n + は、0から数えて' + n + 'つ目の目盛りだよ。'
+    explanation: '0.' + n + ' は、0から数えて' + n + 'つ目の目盛りだよ。'
   };
 }
 function createQuestions(activity) {
