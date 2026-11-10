@@ -337,3 +337,31 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Small celebratory feedback: keep the learning task in focus. */
+.feedback-row.good .feedback-mark { animation: answer-mark-pop .42s cubic-bezier(.2,.8,.2,1) both; }
+.effect-answer-celebrate { animation: answer-panel-glow .52s ease-out; }
+@keyframes answer-mark-pop {
+  0% { transform: scale(.55) rotate(-18deg); }
+  65% { transform: scale(1.28) rotate(7deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@keyframes answer-panel-glow {
+  0% { box-shadow: 0 0 0 0 rgba(64,178,143,0); }
+  35% { box-shadow: 0 0 0 5px rgba(64,178,143,.15), 0 12px 30px rgba(64,178,143,.12); }
+  100% { box-shadow: var(--shadow); }
+}
+.result-panel { animation: result-arrive .42s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes result-arrive {
+  from { opacity: 0; transform: translateY(12px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.match-card.matched { animation: match-pair-pop .32s ease-out; }
+@keyframes match-pair-pop {
+  0% { transform: scale(1); }
+  55% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feedback-row.good .feedback-mark, .effect-answer-celebrate, .result-panel, .match-card.matched { animation: none !important; }
+}
