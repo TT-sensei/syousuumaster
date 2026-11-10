@@ -321,24 +321,31 @@ function questionFraction() {
     explanation: n + '/10 は、1を10こに分けたうちの' + n + 'こ分。小数では ' + answer + ' と表すよ。'
   };
 }
-function questionCompare() {
+function questionCompare() { return questionCompareWith(false); }
+function questionCompareSmall() { return questionCompareWith(true); }
+function questionCompareWith(smaller) {
   const a = randomInt(1, 9);
   let b = randomInt(1, 9);
   if (Math.random() < .15) b = a;
   else if (a === b) b = b === 9 ? 8 : b + 1;
-  const answer = a > b ? 'left' : (a < b ? 'right' : 'same');
+  const answer = a === b ? 'same' : ((a > b) !== smaller ? 'left' : 'right');
+  const biggerSide = a > b ? 'left' : 'right';
+  const winCount = a > b ? a : b;
+  const loseCount = a > b ? b : a;
   return {
     type: 'compare',
-    prompt: '大きいのはどちら？',
+    prompt: smaller ? '小さいのはどちら？' : '大きいのはどちら？',
     left: '0.' + a, right: '0.' + b, leftCount: a, rightCount: b, answer: answer,
     choices: [
-      { value: 'left', label: '左が大きい' },
+      { value: 'left', label: smaller ? '左が小さい' : '左が大きい' },
       { value: 'same', label: '同じ大きさ' },
-      { value: 'right', label: '右が大きい' }
+      { value: 'right', label: smaller ? '右が小さい' : '右が大きい' }
     ],
     hint: '0.1のいくつ分かを比べると、大きさが見えてくるよ。',
     explanation: a === b ? 'どちらも0.1が' + a + 'こ分。だから同じ大きさだよ。' :
-      (a > b ? '左は0.1が' + a + 'こ分、右は' + b + 'こ分。左の方が大きいね。' : '右は0.1が' + b + 'こ分、左は' + a + 'こ分。右の方が大きいね。')
+      (smaller
+        ? (biggerSide === 'left' ? '左は0.1が' + winCount + 'こ分、右は' + loseCount + 'こ分。右の方が小さいね。' : '右は0.1が' + winCount + 'こ分、左は' + loseCount + 'こ分。左の方が小さいね。')
+        : (biggerSide === 'left' ? '左は0.1が' + winCount + 'こ分、右は' + loseCount + 'こ分。左の方が大きいね。' : '右は0.1が' + winCount + 'こ分、左は' + loseCount + 'こ分。右の方が大きいね。'))
   };
 }
 function questionNumberLine() {
@@ -350,23 +357,82 @@ function questionNumberLine() {
     explanation: '0.' + n + ' は、0から数えて' + n + 'つ目の目盛りだよ。'
   };
 }
-function createQuestions(activity) {
+function questionNumberLineFraction() {
+  const n = randomInt(1, 9);
+  return {
+    type: 'numberline', prompt: n + '/10 はどこの目盛り？',
+    answer: '0.' + n,
+    hint: n + '/10 は、0.1が' + n + 'こ分。左から' + n + 'つ目の目盛りを探そう。',
+    explanation: n + '/10 は 0.' + n + ' と同じ大きさ。0から数えて' + n + 'つ目の目盛りだよ。'
+  };
+}
+function questionNumberLineRead() {
+  const n = randomInt(1, 9);
+  const correct = '0.' + n;
+  return {
+    type: 'numberline-read', prompt: '▼ の目盛りはいくつ？',
+    markerCount: n, answer: correct,
+    choices: makeChoices(correct, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '1.0']),
+    hint: '0から右へ、目盛りを1つずつ数えてみよう。',
+    explanation: '▼ は、0から数えて' + n + 'つ目の目盛り。0.' + n + ' だよ。'
+  };
+}
+function questionComplement() {
+  const n = randomInt(1, 9);
+  const rest = 10 - n;
+  return {
+    type: 'choice', prompt: '0.' + n + ' に、あと 0.1 が何こ分で 1 になる？',
+    visualCount: n, answer: String(rest),
+    choices: makeChoices(String(rest), [String(rest === 1 ? 2 : rest - 1), String(rest === 9 ? 8 : rest + 1), String(n)]),
+    hint: '0.1が10こ分で1。いま ' + n + ' こあるから、あと何こ必要かな。',
+    explanation: '0.' + n + ' は 0.1 が ' + n + ' こ分。1 まであと ' + rest + ' こ分だよ。'
+  };
+}
+function questionDecimalToFraction() {
+  const n = randomInt(1, 9);
+  const correct = n + '/10';
+  const others = chooseOtherTenths(n, 3).map(function (k) { return k + '/10'; });
+  return {
+    type: 'choice', prompt: '0.' + n + ' と同じ大きさの分数は？',
+    visualCount: n, answer: correct,
+    choices: makeChoices(correct, others),
+    hint: '0.' + n + ' は、1を10こに分けたうちの' + n + 'こ分だよ。',
+    explanation: '0.' + n + ' は ' + correct + ' と同じ大きさだよ。'
+  };
+}
+function questionKey(q) {
+  return [q.type, q.prompt, q.answer, q.left || '', q.right || '', q.targetCount || '', q.markerCount || ''].join('|');
+}
+function buildQuestions(producer, count) {
   const list = [];
-  for (let i = 0; i < activity.questionCount; i += 1) {
-    if (activity.type === 'numberline') list.push(questionNumberLine());
-    else if (activity.type === 'builder') list.push(questionBuilder());
-    else if (activity.type === 'compare') list.push(questionCompare());
-    else if (activity.type === 'mixed') {
-      const mode = i % 6;
-      if (mode === 0) list.push(questionPiece());
-      else if (mode === 1) list.push(questionFraction());
-      else if (mode === 2) list.push(questionNumberLine());
-      else if (mode === 3) list.push(questionCompare());
-      else if (mode === 4) list.push(questionDecimalToCount());
-      else list.push(questionBuilder());
-    }
+  const seen = new Set();
+  let guard = 0;
+  while (list.length < count && guard < count * 40) {
+    guard += 1;
+    const q = producer(list.length);
+    const key = questionKey(q);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    list.push(q);
   }
-  return shuffled(list);
+  return list;
+}
+function createQuestions(activity) {
+  if (activity.type === 'numberline') {
+    const gens = shuffled([questionNumberLine, questionNumberLineFraction, questionNumberLineRead]);
+    return buildQuestions(function (i) { return gens[i % gens.length](); }, activity.questionCount);
+  }
+  if (activity.type === 'builder') {
+    return buildQuestions(function () { return questionBuilder(); }, activity.questionCount);
+  }
+  if (activity.type === 'compare') {
+    return buildQuestions(function () { return Math.random() < .5 ? questionCompare() : questionCompareSmall(); }, activity.questionCount);
+  }
+  if (activity.type === 'mixed') {
+    const gens = shuffled([questionPiece, questionFraction, questionDecimalToFraction, questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionCompare, questionCompareSmall, questionComplement, questionDecimalToCount, questionBuilder]);
+    return buildQuestions(function (i) { return gens[i % gens.length](); }, activity.questionCount);
+  }
+  return [];
 }
 function createMatchCards() {
   const values = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, 6);
@@ -422,6 +488,16 @@ function renderNumberLine() {
   }
   return '<div class="number-line-wrap"><div class="number-line">' + ticks.join('') + '</div><div class="line-labels"><span>0</span><span>1</span></div></div>';
 }
+function renderStaticNumberLine(markedIndex) {
+  const ticks = [];
+  const marks = [];
+  for (let i = 0; i <= 10; i += 1) {
+    const value = (i / 10).toFixed(1);
+    ticks.push('<span class="line-tick static ' + ((i === 0 || i === 10) ? 'endpoint' : '') + (i === markedIndex ? ' marked' : '') + '" aria-label="' + value + '"></span>');
+    marks.push('<span class="line-mark">' + (i === markedIndex ? '▼' : '') + '</span>');
+  }
+  return '<div class="number-line-wrap"><div class="line-marker-row">' + marks.join('') + '</div><div class="number-line">' + ticks.join('') + '</div><div class="line-labels"><span>0</span><span>1</span></div></div>';
+}
 function renderChoiceButtons(question) {
   const isCompare = question.type === 'compare';
   const html = question.choices.map(function (choice) {
@@ -443,6 +519,12 @@ function renderRegularQuestion() {
   }
   if (currentQuestion.type === 'builder') {
     renderBuilder();
+  } else if (currentQuestion.type === 'numberline-read') {
+    byId('visual-area').innerHTML = '<div class="tenths-caption">0から1まで、10こに分けた数直線</div>' + renderStaticNumberLine(currentQuestion.markerCount);
+    byId('answer-area').innerHTML = renderChoiceButtons(currentQuestion);
+    Array.from(document.querySelectorAll('[data-choice]')).forEach(function (button) {
+      button.addEventListener('click', function () { submitAnswer(button.dataset.choice, button); });
+    });
   } else if (currentQuestion.type === 'numberline') {
     byId('visual-area').innerHTML = visual;
     byId('answer-area').innerHTML = renderNumberLine();
@@ -767,10 +849,13 @@ function questionForMistake(mistake) {
   if (!activity) return questionFraction();
   if (activity.type === 'legacy') return makeLegacyTrainingQuestion(activity.mode);
   if (activity.type === 'match') return questionFraction();
-  if (activity.type === 'numberline') return questionNumberLine();
+  if (activity.type === 'numberline') {
+    const nlGens = [questionNumberLine, questionNumberLineFraction, questionNumberLineRead];
+    return nlGens[randomInt(0, nlGens.length - 1)]();
+  }
   if (activity.type === 'builder') return questionBuilder();
-  if (activity.type === 'compare') return questionCompare();
-  const choices = [questionPiece, questionFraction, questionNumberLine, questionCompare, questionBuilder];
+  if (activity.type === 'compare') return Math.random() < .5 ? questionCompare() : questionCompareSmall();
+  const choices = [questionPiece, questionFraction, questionDecimalToFraction, questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionCompare, questionCompareSmall, questionComplement, questionDecimalToCount, questionBuilder];
   return choices[randomInt(0, choices.length - 1)]();
 }
 function startWeakTraining() {
@@ -780,11 +865,20 @@ function startWeakTraining() {
   session = {
     id: 'weak-training', total: mistakes.length, correct: 0, attempts: 0, index: 0,
     matched: 0, skipped: 0, revealed: 0, locked: false,
-    questions: mistakes.map(function (mistake) {
-      const question = questionForMistake(mistake);
-      question.mistakeId = mistake.id;
-      return question;
-    })
+    questions: (function () {
+      const seenKeys = new Set();
+      return mistakes.map(function (mistake) {
+        let question = questionForMistake(mistake);
+        let guard = 0;
+        while (seenKeys.has(questionKey(question)) && guard < 12) {
+          guard += 1;
+          question = questionForMistake(mistake);
+        }
+        seenKeys.add(questionKey(question));
+        question.mistakeId = mistake.id;
+        return question;
+      });
+    })()
   };
   comboManager.reset();
   lastBadge = null;
