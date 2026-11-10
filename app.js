@@ -600,7 +600,9 @@ function recordCorrect(explanation) {
   state.totalCorrect += 1;
   const streak = comboManager.correct();
   state.bestCombo = Math.max(state.bestCombo, comboManager.getMax());
-  if (streak >= 5) grantBadge('combo');
+  if (streak === 3) { showToast('3コンボ！いい調子！'); playSound('decide'); }
+  if (streak === 5) { grantBadge('combo'); showToast('5コンボ！すごい集中力！'); }
+  if (streak === 10) { showToast('10コンボ！連続正解！'); playSound('mission'); }
   saveState();
   updateTopStatus();
   setFeedback('正解！ ' + (explanation || 'その調子！'), 'good', '✓');
