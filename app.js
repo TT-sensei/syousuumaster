@@ -604,7 +604,9 @@ function recordCorrect(explanation) {
   saveState();
   updateTopStatus();
   setFeedback('正解！ ' + (explanation || 'その調子！'), 'good', '✓');
-  setCoach('いいね！その見方で合っているよ。');
+  const panel = byId('question-panel');
+  if (panel) { panel.classList.remove('effect-answer-celebrate'); void panel.offsetWidth; panel.classList.add('effect-answer-celebrate'); }
+  setCoach(streak >= 3 ? streak + 'コンボ！すばらしい！' : 'いいね！その見方で合っているよ。');
   emitEvent('edu:correct', { isCorrect: true, answer: explanation || '', type: currentActivity.type });
   playSound('correct');
 }
@@ -636,6 +638,7 @@ function handleMatch(index) {
   if (selectedMatch < 0) {
     selectedMatch = index;
     renderMatchCards();
+    playSound('click');
     const selected = matchCards[index];
     byId('visual-area').innerHTML = renderTenthsBar(selected.value, selected.label + ' の大きさ');
     setFeedback('もう1まい、同じ大きさを探そう。', '', '');
@@ -792,7 +795,7 @@ function startWeakTraining() {
 function initEvents() {
   byId('activity-grid').addEventListener('click', function (event) {
     const card = event.target.closest('[data-activity]');
-    if (card) startActivity(card.dataset.activity);
+    if (card) { playSound('click'); startActivity(card.dataset.activity); }
   });
   byId('sound-toggle').addEventListener('click', function () {
     soundEnabled = !soundEnabled;
@@ -850,7 +853,9 @@ async function init() {
     playSound('badge');
   });
   document.addEventListener('edu:combo', function (event) {
-    if (event.detail && event.detail.current === 5) showToast('5コンボ！いい調子！');
+    const current = event.detail && event.detail.current;
+    if (current === 3) { showToast('3コンボ！いい調子！'); playSound('decide'); }
+    if (current === 5) { showToast('5コンボ！すごい集中力！'); playSound('badge'); }
   });
   initEvents();
   renderHome();
