@@ -626,7 +626,7 @@ function recordWrong(message) {
   playSound('softFail');
 }
 function handleMatch(index) {
-  if (matchedCards.has(index) || selectedMatch === index) return;
+  if (session.locked || matchedCards.has(index) || selectedMatch === index) return;
   if (selectedMatch < 0) {
     selectedMatch = index;
     renderMatchCards();
@@ -643,19 +643,22 @@ function handleMatch(index) {
     matchedCards.add(index);
     selectedMatch = -1;
     session.matched += 1;
+    session.locked = true;
     recordCorrect(first.value + '/10 と 0.' + first.value + ' は同じ大きさ！');
     setFeedback(first.value + '/10 = 0.' + first.value + '。同じ大きさだね！', 'good', '✓');
     byId('visual-area').innerHTML = renderTenthsBar(first.value, first.value + '/10 = 0.' + first.value);
     window.setTimeout(function () {
       if (session.matched >= session.total) finishActivity();
-      else renderMatchCards();
+      else { session.locked = false; renderMatchCards(); }
     }, 650);
   } else {
+    session.locked = true;
     recordWrong('ちがうカードみたい。10等分した図を見てみよう。');
     selectedMatch = index;
     renderMatchCards();
     window.setTimeout(function () {
       selectedMatch = -1;
+      session.locked = false;
       renderMatchCards();
     }, 650);
   }
