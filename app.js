@@ -46,7 +46,7 @@ function shuffled(items) {
   return copy;
 }
 function defaultState() {
-  return { version: 1, stars: 0, totalCorrect: 0, bestCombo: 0, soundEnabled: true, activities: {} };
+  return { version: 1, stars: 0, totalCorrect: 0, bestCombo: 0, soundEnabled: true, activities: {}, mistakes: [] };
 }
 function mergeState(saved) {
   const base = defaultState();
@@ -56,6 +56,7 @@ function mergeState(saved) {
   base.bestCombo = Number.isFinite(saved.bestCombo) ? Math.max(0, saved.bestCombo) : 0;
   base.soundEnabled = saved.soundEnabled !== false;
   base.activities = saved.activities && typeof saved.activities === 'object' ? saved.activities : {};
+  base.mistakes = Array.isArray(saved.mistakes) ? saved.mistakes.slice(-50) : [];
   return base;
 }
 function makeFallbackStorage() {
@@ -171,24 +172,36 @@ function renderBadges() {
 function renderActivities() {
   byId('activity-grid').innerHTML = ACTIVITIES.map(function (activity) {
     const done = progress.isCompleted(activity.id);
+    const stats = getActivityStats(activity.id);
+    const stateLabel = done ? '✓ マスター' : (stats.played ? 'プレイ記録あり' : '▶ あそぶ');
     return '<button type="button" class="activity-card ' + (done ? 'is-done' : '') + '" data-activity="' + activity.id + '">' +
       '<div class="card-topline"><span class="card-category ' + activity.categoryTone + '">' + activity.category + '</span>' +
-      '<span class="card-state">' + (done ? '✓ プレイ済み' : '▶ あそぶ') + '</span></div>' +
+      '<span class="card-state">' + stateLabel + '</span></div>' +
       '<img class="card-art" src="' + activity.art + '" alt="" loading="lazy">' +
       '<h3>' + activity.title + '</h3><p class="card-subtitle">' + activity.subtitle + '</p>' +
       '<p class="card-description">' + activity.description + '</p>' +
       '<div class="card-bottom"><span class="card-grade">' + activity.grade + '</span>' +
-      '<span class="card-state">' + (done ? 'もう一度挑戦 →' : 'チャレンジ →') + '</span></div></button>';
+      '<span class="card-state">' + (done ? 'もう一度挑戦 →' : (stats.played ? 'もう一度挑戦 →' : 'チャレンジ →')) + '</span></div></button>';
   }).join('');
   Array.from(document.querySelectorAll('.card-art')).forEach(function (image) {
     image.addEventListener('error', function () { image.hidden = true; }, { once: true });
   });
+}
+function updateTrainingDisplay() {
+  const count = state.mistakes.length;
+  const button = byId('weak-training-button');
+  byId('training-summary').textContent = count
+    ? 'まちがえた内容が ' + count + ' 件あるよ。近い問題でもう一度たしかめよう。'
+    : '今は特訓する問題がないよ。まちがえた問題はここに集まるよ。';
+  button.disabled = count === 0;
+  button.textContent = count ? '弱点特訓をはじめる (' + Math.min(8, count) + '問)' : '特訓する問題はまだないよ';
 }
 function renderHome() {
   updateTopStatus();
   updateProgressDisplay();
   renderActivities();
   renderBadges();
+  updateTrainingDisplay();
 }
 function showScreen(screenName) {
   byId('home-screen').hidden = screenName !== 'home';
@@ -260,6 +273,17 @@ function questionPiece() {
     explanation: '0.1が' + n + 'こで ' + correct + '。10こ集まると1になるよ。'
   };
 }
+function questionBuilder() {
+  const n = randomInt(1, 9);
+  return {
+    type: 'builder',
+    prompt: '0.1 のブロックを集めて、0.' + n + ' をつくろう！',
+    targetCount: n,
+    answer: '0.' + n,
+    hint: '0.1を1こずつ増やして、ブロックが何こになったか数えよう。',
+    explanation: '0.1が' + n + 'こで 0.' + n + '。'
+  };
+}
 function questionCountTenths() {
   const n = randomInt(1, 9);
   return {
@@ -324,15 +348,16 @@ function createQuestions(activity) {
   const list = [];
   for (let i = 0; i < activity.questionCount; i += 1) {
     if (activity.type === 'numberline') list.push(questionNumberLine());
-    else if (activity.type === 'builder') list.push(i % 2 === 0 ? questionPiece() : questionDecimalToCount());
+    else if (activity.type === 'builder') list.push(questionBuilder());
     else if (activity.type === 'compare') list.push(questionCompare());
     else if (activity.type === 'mixed') {
-      const mode = i % 5;
+      const mode = i % 6;
       if (mode === 0) list.push(questionPiece());
       else if (mode === 1) list.push(questionFraction());
       else if (mode === 2) list.push(questionNumberLine());
       else if (mode === 3) list.push(questionCompare());
-      else list.push(questionDecimalToCount());
+      else if (mode === 4) list.push(questionDecimalToCount());
+      else list.push(questionBuilder());
     }
   }
   return shuffled(list);
@@ -356,6 +381,32 @@ function renderMatchCards() {
     button.addEventListener('click', function () { handleMatch(Number(button.dataset.matchIndex)); });
   });
 }
+function renderBuilder() {
+  const count = session.buildCount || 0;
+  const cells = [];
+  for (let i = 1; i <= 10; i += 1) cells.push('<span class="tenths-cell ' + (i <= count ? 'filled' : '') + '"></span>');
+  byId('visual-area').innerHTML = '<div class="tenths-visual"><div class="tenths-caption">0.1ブロックを1こずつ集めよう</div><div class="tenths-bar">' + cells.join('') + '</div><div class="bar-label"><span>0</span><strong>いま ' + count + 'こ（0.' + count + '）</strong><span>1</span></div></div>';
+  byId('answer-area').innerHTML = '<div class="builder-controls"><button type="button" class="soft-button" id="builder-minus" ' + (count <= 0 ? 'disabled' : '') + '>− 1こ</button><button type="button" class="builder-add" id="builder-plus" ' + (count >= 10 ? 'disabled' : '') + '>＋ 0.1を1こ</button><button type="button" class="submit-button" id="builder-check">これで完成！</button></div>';
+  byId('builder-minus').addEventListener('click', function () { session.buildCount = Math.max(0, count - 1); renderBuilder(); playSound('click'); });
+  byId('builder-plus').addEventListener('click', function () { session.buildCount = Math.min(10, count + 1); renderBuilder(); playSound('click'); });
+  byId('builder-check').addEventListener('click', submitBuilder);
+}
+function submitBuilder() {
+  if (session.locked) return;
+  const count = session.buildCount || 0;
+  if (count === currentQuestion.targetCount) {
+    session.locked = true;
+    recordCorrect(currentQuestion.explanation);
+    byId('builder-check').disabled = true;
+    byId('builder-plus').disabled = true;
+    byId('builder-minus').disabled = true;
+    window.setTimeout(advanceQuestion, 700);
+  } else {
+    recordWrong(count < currentQuestion.targetCount
+      ? 'あと ' + (currentQuestion.targetCount - count) + 'こ、0.1ブロックを集めよう。'
+      : '少し多いみたい。目標の0.' + currentQuestion.targetCount + 'に合わせよう。');
+  }
+}
 function renderNumberLine() {
   const ticks = [];
   for (let i = 0; i <= 10; i += 1) {
@@ -373,6 +424,7 @@ function renderChoiceButtons(question) {
 }
 function renderRegularQuestion() {
   currentQuestion = session.questions[session.index];
+  if (currentQuestion.type === 'builder') session.buildCount = 0;
   byId('question-prompt').textContent = currentQuestion.prompt;
   let visual = '';
   if (currentQuestion.type === 'numberline') visual = '<div class="tenths-caption">0から1まで、10こに分けた数直線</div>';
@@ -382,7 +434,9 @@ function renderRegularQuestion() {
       '<div class="compare-side"><strong>' + currentQuestion.left + '</strong>' + renderTenthsBar(currentQuestion.leftCount, '左のテープ') + '</div>' +
       '<div class="compare-side"><strong>' + currentQuestion.right + '</strong>' + renderTenthsBar(currentQuestion.rightCount, '右のテープ') + '</div></div>';
   }
-  if (currentQuestion.type === 'numberline') {
+  if (currentQuestion.type === 'builder') {
+    renderBuilder();
+  } else if (currentQuestion.type === 'numberline') {
     byId('visual-area').innerHTML = visual;
     byId('answer-area').innerHTML = renderNumberLine();
     Array.from(document.querySelectorAll('[data-line-value]')).forEach(function (button) {
@@ -468,14 +522,15 @@ function startActivity(id) {
   playSound('start');
 }
 function awardAfterActivity() {
+  if (currentActivity.type === 'training') { saveState(); return; }
   const stats = getActivityStats(currentActivity.id);
   stats.played = (stats.played || 0) + 1;
   stats.best = Math.max(stats.best || 0, session.correct);
   if (session.correct >= session.total) {
     stats.mastered = true;
     if (currentActivity.badge) grantBadge(currentActivity.badge);
+    progress.complete(currentActivity.id);
   }
-  progress.complete(currentActivity.id);
   if (progress.getCompletedCount() === ACTIVITIES.length) grantBadge('park-tour');
   saveState();
 }
@@ -483,7 +538,9 @@ function finishActivity() {
   if (!currentActivity || !session) return;
   awardAfterActivity();
   const perfect = session.correct >= session.total;
-  byId('result-title').textContent = perfect ? 'エリアマスター！' : 'チャレンジ終了！';
+  byId('result-title').textContent = currentActivity.type === 'training'
+    ? (perfect ? '弱点クリア！' : '特訓終了！')
+    : (perfect ? 'エリアマスター！' : 'チャレンジ終了！');
   byId('result-message').textContent = perfect
     ? 'すべて正解！小数の見方がぐんと身に付いたね。'
     : '最後まで挑戦できたね。もう一度遊ぶと、もっと分かるよ。';
@@ -523,6 +580,9 @@ function advanceQuestion() {
   else renderGame();
 }
 function recordCorrect(explanation) {
+  if (currentActivity.type === 'training' && currentQuestion && currentQuestion.mistakeId) {
+    state.mistakes = state.mistakes.filter(function (mistake) { return mistake.id !== currentQuestion.mistakeId; });
+  }
   session.correct += 1;
   session.attempts += 1;
   state.stars += 1;
@@ -539,6 +599,17 @@ function recordCorrect(explanation) {
 }
 function recordWrong(message) {
   session.attempts += 1;
+  if (currentActivity && currentActivity.type !== 'training') {
+    state.mistakes.push({
+      id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7),
+      activityId: currentActivity.id,
+      mode: currentActivity.mode || null,
+      createdAt: Date.now()
+    });
+    state.mistakes = state.mistakes.slice(-50);
+    saveState();
+    updateTrainingDisplay();
+  }
   comboManager.wrong();
   setFeedback(message || 'おしい！もう一度考えてみよう。', 'bad', '○');
   setCoach('大丈夫。図や目盛りを見て、もう一度やってみよう。');
@@ -652,6 +723,52 @@ function nextLegacyQuestion() {
   session.locked = false;
   currentLegacyQuestion = makeLegacyQuestion(currentActivity.mode);
 }
+function makeLegacyTrainingQuestion(mode) {
+  const old = makeLegacyQuestion(mode);
+  const answer = String(old.correctValue);
+  const numeric = Number(answer);
+  const distractors = mode === 'monster'
+    ? [String(Math.max(0, numeric - 1)), String(numeric + 1), String(numeric + 10)]
+    : [String(Number((numeric + 1).toFixed(1))), String(Number((numeric - 1).toFixed(1))), String(Number((numeric + 10).toFixed(1)))];
+  return {
+    type: 'choice', prompt: old.prompt, answer: answer,
+    choices: makeChoices(answer, distractors),
+    hint: mode === 'juice' ? '1 L = 10 dL。向きに合わせて10倍か10でわろう。'
+      : (mode === 'ruler' ? '1 cm = 10 mm。向きに合わせて10倍か10でわろう。' : '0.1が何こ分かを数えよう。'),
+    explanation: 'こたえは ' + answer + ' ' + old.unit + ' だよ。'
+  };
+}
+function questionForMistake(mistake) {
+  const activity = ACTIVITIES.find(function (item) { return item.id === mistake.activityId; });
+  if (!activity) return questionFraction();
+  if (activity.type === 'legacy') return makeLegacyTrainingQuestion(activity.mode);
+  if (activity.type === 'match') return questionFraction();
+  if (activity.type === 'numberline') return questionNumberLine();
+  if (activity.type === 'builder') return questionBuilder();
+  if (activity.type === 'compare') return questionCompare();
+  const choices = [questionPiece, questionFraction, questionNumberLine, questionCompare, questionBuilder];
+  return choices[randomInt(0, choices.length - 1)]();
+}
+function startWeakTraining() {
+  const mistakes = state.mistakes.slice(-8).reverse();
+  if (!mistakes.length) { showToast('今は特訓する問題がないよ。'); return; }
+  currentActivity = { id: 'weak-training', title: '弱点特訓', type: 'training', category: 'まちがえた内容を復習', questionCount: mistakes.length, badge: null };
+  session = {
+    id: 'weak-training', total: mistakes.length, correct: 0, attempts: 0, index: 0,
+    matched: 0, skipped: 0, revealed: 0, locked: false,
+    questions: mistakes.map(function (mistake) {
+      const question = questionForMistake(mistake);
+      question.mistakeId = mistake.id;
+      return question;
+    })
+  };
+  comboManager.reset();
+  coachRole = NAVI_ROLES.find(function (role) { return role.id === 'nami'; }) || NAVI_ROLES[1];
+  showScreen('game');
+  renderGame();
+  setCoach('まちがえたところを、もう一度ゆっくり確かめよう。');
+  playSound('start');
+}
 function initEvents() {
   byId('activity-grid').addEventListener('click', function (event) {
     const card = event.target.closest('[data-activity]');
@@ -669,7 +786,12 @@ function initEvents() {
   byId('hint-button').addEventListener('click', hintCurrent);
   byId('show-answer-button').addEventListener('click', revealAnswer);
   byId('next-after-reveal').addEventListener('click', skipAfterReveal);
-  byId('retry-activity').addEventListener('click', function () { if (currentActivity) startActivity(currentActivity.id); });
+  byId('retry-activity').addEventListener('click', function () {
+    if (!currentActivity) return;
+    if (currentActivity.type === 'training') startWeakTraining();
+    else startActivity(currentActivity.id);
+  });
+  byId('weak-training-button').addEventListener('click', startWeakTraining);
   byId('result-home').addEventListener('click', function () {
     currentActivity = null; session = null; renderHome(); showScreen('home');
   });
