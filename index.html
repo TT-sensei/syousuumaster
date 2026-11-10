@@ -1,166 +1,114 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小数マスター：全モード双方向</title>
-    <style>
-        :root { --p: #ff5e78; --s: #4db8ff; --a: #ffd32a; --bg: #fff9e6; }
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); text-align: center; margin: 0; padding: 10px; }
-        #app { max-width: 500px; min-height: 85vh; margin: 10px auto; background: white; border-radius: 40px; border: 8px solid #555; position: relative; display: flex; flex-direction: column; box-shadow: 0 15px 0 #ccc; padding-bottom: 20px; }
-        #status-bar { display: flex; justify-content: space-around; padding: 15px; background: #eee; border-radius: 30px 30px 0 0; font-weight: bold; }
-        .score-val { color: var(--p); font-size: 24px; }
-        #menu { padding: 20px; display: flex; flex-direction: column; gap: 15px; align-items: center; }
-        .mode-btn { width: 90%; padding: 20px; font-size: 20px; border-radius: 20px; border: none; cursor: pointer; color: white; transition: 0.2s; box-shadow: 0 6px 0 rgba(0,0,0,0.2); font-weight: bold; }
-        .btn-juice { background: #ff9f43; }
-        .btn-ruler { background: #4db8ff; }
-        .btn-monster { background: #a29bfe; }
-        #game { display: none; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-        .q-text { font-size: 30px; font-weight: bold; margin: 25px 0; color: #333; line-height: 1.5; }
-        input { font-size: 40px; width: 150px; border: 5px solid #ddd; border-radius: 20px; text-align: center; outline: none; margin-bottom: 20px; }
-        .shake { animation: shake 0.4s; }
-        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-10px)} 75%{transform:translateX(10px)} }
-        .bounce { animation: bounce 0.5s; }
-        @keyframes bounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
-        .submit-btn { background: var(--p); color: white; border: none; padding: 15px 40px; font-size: 22px; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 0 #d64545; }
-        .back-btn { margin-top: 30px; background: #999; color: white; border: none; padding: 8px 20px; border-radius: 10px; cursor: pointer; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eef4ff">
+  <meta name="description" content="小学3年生の小数のしくみを、分数・小数・図・数直線で楽しく学ぶゲームパーク。">
+  <title>小数マスター PARK｜3年算数</title>
+  <link rel="stylesheet" href="https://tt-sensei.github.io/edu-effects/css/edu-effects.css">
+  <link rel="stylesheet" href="https://tt-sensei.github.io/edu-effects/css/edu-learning.css">
+  <link rel="stylesheet" href="https://tt-sensei.github.io/edu-effects/css/edu-effects-library.css">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="小数マスター PARK ホーム">
+        <span class="brand-mark">0.1</span>
+        <span class="brand-copy"><strong>小数マスター PARK</strong><small>小学3年・算数</small></span>
+      </a>
+      <div class="top-status">
+        <span class="status-pill stars">★ <b id="star-count">0</b> ほし</span>
+        <span class="status-pill rank" id="rank-label">見習い</span>
+        <button class="icon-button" id="sound-toggle" type="button" aria-pressed="true" aria-label="音をオフにする">♪</button>
+      </div>
+    </header>
 
-<div id="app">
-    <div id="status-bar">
-        <div>⭐ほし: <span id="score" class="score-val">0</span></div>
-        <div id="rank-display" style="font-size: 14px; align-self: center;">ランク: 見習い</div>
-    </div>
+    <main>
+      <section id="home-screen" class="screen">
+        <section class="world-hero">
+          <div class="hero-copy">
+            <p class="eyebrow">DECIMAL ADVENTURE</p>
+            <h1>小数の世界を<br><span>あそんで、つかもう。</span></h1>
+            <p>0.1のひみつを見つけて、パークのアトラクションに挑戦しよう！</p>
+            <div class="hero-progress">
+              <div class="hero-progress-label"><span>パークの進みぐあい</span><strong id="progress-label">0 / 8 エリア</strong></div>
+              <div class="progress-track"><span id="progress-fill"></span></div>
+            </div>
+          </div>
+          <div class="hero-art">
+            <img class="hero-group" src="https://tt-sensei.github.io/navi-character-/assets/web/fantasy/groups/group-fantasy-town.webp" alt="冒険の仲間たち">
+            <span class="hero-star star-one">✦</span><span class="hero-star star-two">✧</span>
+          </div>
+          <div class="hero-footnote">1を10こに分けた1こ分が 0.1</div>
+        </section>
 
-    <div id="menu">
-        <h2 style="margin: 10px 0;">どっちの特訓にする？</h2>
-        <button class="mode-btn btn-juice" onclick="startMode('juice')">🍹 ジュース屋さん<br><small>(L ⇔ dL どっちも！)</small></button>
-        <button class="mode-btn btn-ruler" onclick="startMode('ruler')">📏 ものさし探偵<br><small>(cm ⇔ mm どっちも！)</small></button>
-        <button class="mode-btn btn-monster" onclick="startMode('monster')">👾 0.1モンスター<br><small>(こすう ⇔ 小数 どっちも！)</small></button>
-    </div>
+        <section class="section-heading">
+          <div><p class="eyebrow">CHOOSE YOUR ATTRACTION</p><h2>どこから遊ぶ？</h2></div>
+          <span class="section-note">好きなエリアから挑戦OK</span>
+        </section>
+        <div class="activity-grid" id="activity-grid"></div>
 
-    <div id="game">
-        <div id="mode-title" style="font-weight: bold; font-size: 20px; border-bottom: 3px solid #eee; padding-bottom: 5px;"></div>
-        <div class="q-text" id="q-text"></div>
-        <div>
-            <input type="number" id="ans" step="any" placeholder="?">
-            <span id="unit" style="font-size: 24px; font-weight: bold;"></span>
+        <section class="collection-panel">
+          <div class="section-heading compact">
+            <div><p class="eyebrow">YOUR COLLECTION</p><h2>見つけたバッジ</h2></div>
+            <span class="section-note" id="badge-count">0 / 8</span>
+          </div>
+          <div class="badge-grid" id="badge-grid"></div>
+        </section>
+        <p class="footer-note">学習の記録は、この端末のブラウザに保存されます。</p>
+      </section>
+
+      <section id="game-screen" class="screen" hidden>
+        <div class="game-toolbar">
+          <button class="back-button" id="back-home" type="button">← パークにもどる</button>
+          <div class="game-title-wrap"><strong id="game-title">アトラクション</strong><span id="game-step">1 / 8</span></div>
+          <div class="game-meter"><span id="game-meter-fill"></span></div>
         </div>
-        <button class="submit-btn" onclick="check()">こたえ合わせ！</button>
-        <div id="msg" style="height: 30px; margin-top: 15px; font-weight: bold; color: var(--p);"></div>
-        <button class="back-btn" onclick="goToMenu()">メニューにもどる</button>
-    </div>
-</div>
+        <div class="game-layout">
+          <aside class="coach-panel">
+            <div class="coach-art"><img id="coach-image" src="https://tt-sensei.github.io/navi-character-/assets/web/fantasy/kai-mage.webp" alt=""></div>
+            <p class="coach-label">ナビゲーター</p>
+            <p id="coach-line" class="coach-line">図を見ながら考えてみよう。</p>
+            <div class="coach-stars">★ <span id="game-stars">0</span></div>
+          </aside>
+          <section class="question-panel">
+            <div class="question-heading"><span class="mini-tag" id="game-category">小数のしくみ</span><span class="question-count" id="question-count">1 / 8</span></div>
+            <h2 id="question-prompt" class="question-prompt">問題がここに表示されます</h2>
+            <div id="visual-area" class="visual-area"></div>
+            <div id="answer-area" class="answer-area"></div>
+            <div class="feedback-row" id="feedback-row" aria-live="polite">
+              <span id="feedback-mark" class="feedback-mark"></span>
+              <span id="feedback-text">答えを選ぼう。</span>
+            </div>
+            <div class="help-row">
+              <button class="soft-button" id="hint-button" type="button">ヒント</button>
+              <button class="soft-button" id="show-answer-button" type="button">こたえを見る</button>
+              <button class="primary-button" id="next-after-reveal" type="button" hidden>次へ</button>
+            </div>
+          </section>
+        </div>
+      </section>
 
-<script>
-    let score = 0;
-    let currentMode = '';
-    let correctValue = 0;
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      <section id="result-screen" class="screen" hidden>
+        <div class="result-panel">
+          <div class="result-art"><img src="https://tt-sensei.github.io/navi-character-/assets/web/fantasy/groups/group-fantasy-celebration.webp" alt="仲間たちのお祝い"></div>
+          <p class="eyebrow">ATTRACTION CLEAR</p>
+          <h1 id="result-title">チャレンジ終了！</h1>
+          <p id="result-message" class="result-message">挑戦したことが力になるよ。</p>
+          <div class="result-score"><strong id="result-correct">0</strong><span id="result-total"> / 8 問正解</span></div>
+          <div class="result-badge" id="result-badge"></div>
+          <div class="result-actions">
+            <button class="primary-button" id="retry-activity" type="button">もう一度あそぶ</button>
+            <button class="secondary-button" id="result-home" type="button">パークにもどる</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-    function playSound(freq, type, duration) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
-    }
-
-    function startMode(mode) {
-        currentMode = mode;
-        document.getElementById('menu').style.display = 'none';
-        document.getElementById('game').style.display = 'flex';
-        nextQuestion();
-    }
-
-    function goToMenu() {
-        document.getElementById('menu').style.display = 'flex';
-        document.getElementById('game').style.display = 'none';
-    }
-
-    function nextQuestion() {
-        const d1 = Math.floor(Math.random() * 10);
-        const d2 = Math.floor(Math.random() * 10);
-        const valDec = parseFloat(`${d1}.${d2}`);
-        const valInt = d1 * 10 + d2;
-        const isRev = Math.random() > 0.5;
-
-        const input = document.getElementById('ans');
-        const title = document.getElementById('mode-title');
-        const text = document.getElementById('q-text');
-        const unit = document.getElementById('unit');
-
-        input.value = ''; input.focus();
-        document.getElementById('msg').innerText = '';
-
-        if (currentMode === 'juice') {
-            title.innerText = "🍹 ジュース屋さん";
-            title.style.color = "#ff9f43";
-            if (!isRev) {
-                text.innerHTML = `${valDec} L は<br>何 dL かな？`;
-                correctValue = valInt; unit.innerText = " dL";
-            } else {
-                text.innerHTML = `${valInt} dL は<br>何 L かな？`;
-                correctValue = valDec; unit.innerText = " L";
-            }
-        } else if (currentMode === 'ruler') {
-            title.innerText = "📏 ものさし探偵";
-            title.style.color = "#4db8ff";
-            if (!isRev) {
-                text.innerHTML = `${valInt} mm は<br>何 cm かな？`;
-                correctValue = valDec; unit.innerText = " cm";
-            } else {
-                text.innerHTML = `${valDec} cm は<br>何 mm かな？`;
-                correctValue = valInt; unit.innerText = " mm";
-            }
-        } else {
-            title.innerText = "👾 0.1モンスター";
-            title.style.color = "#a29bfe";
-            if (!isRev) {
-                text.innerHTML = `${valDec} のなかに<br>0.1 は 何こ ある？`;
-                correctValue = valInt; unit.innerText = " こ";
-            } else {
-                text.innerHTML = `0.1 を<br>${valInt} こ あつめると？`;
-                correctValue = valDec; unit.innerText = "";
-            }
-        }
-    }
-
-    function check() {
-        const userAns = parseFloat(document.getElementById('ans').value);
-        const app = document.getElementById('app');
-        const msg = document.getElementById('msg');
-
-        if (Math.abs(userAns - correctValue) < 0.01) {
-            score++;
-            playSound(523.25, 'sine', 0.2); setTimeout(() => playSound(659.25, 'sine', 0.2), 100);
-            app.classList.add('bounce');
-            msg.innerText = "⭕ せいかい！！";
-            
-            if(score >= 50) document.getElementById('rank-display').innerText = "ランク: 👑 小数大王";
-            else if(score >= 20) document.getElementById('rank-display').innerText = "ランク: 💎 小数名人";
-            else if(score >= 5) document.getElementById('rank-display').innerText = "ランク: 🌟 小数見習い卒業";
-
-            setTimeout(() => {
-                app.classList.remove('bounce');
-                nextQuestion();
-            }, 1000);
-        } else {
-            playSound(110, 'sawtooth', 0.3);
-            app.classList.add('shake');
-            msg.innerText = "❌ おしい！もう一回！";
-            setTimeout(() => app.classList.remove('shake'), 400);
-        }
-        document.getElementById('score').innerText = score;
-    }
-
-    document.getElementById('ans').addEventListener('keypress', (e) => { if (e.key === 'Enter') check(); });
-</script>
-
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
