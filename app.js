@@ -310,7 +310,7 @@ function questionFraction() {
   return {
     type: 'choice', prompt: n + '/10 と同じ大きさの小数は？',
     visualCount: n, answer: answer,
-    choices: makeChoices(answer, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '0.0' + n]),
+    choices: makeChoices(answer, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '1.0']),
     hint: '分母の10は、1を10こに分けたこと。分子は、そのうち何こ分かを表すよ。',
     explanation: n + '/10 は、1を10こに分けたうちの' + n + 'こ分。小数では ' + answer + ' と表すよ。'
   };
@@ -385,7 +385,8 @@ function renderBuilder() {
   const count = session.buildCount || 0;
   const cells = [];
   for (let i = 1; i <= 10; i += 1) cells.push('<span class="tenths-cell ' + (i <= count ? 'filled' : '') + '"></span>');
-  byId('visual-area').innerHTML = '<div class="tenths-visual"><div class="tenths-caption">0.1ブロックを1こずつ集めよう</div><div class="tenths-bar">' + cells.join('') + '</div><div class="bar-label"><span>0</span><strong>いま ' + count + 'こ（0.' + count + '）</strong><span>1</span></div></div>';
+  const builtValue = count === 10 ? '1' : '0.' + count;
+  byId('visual-area').innerHTML = '<div class="tenths-visual"><div class="tenths-caption">0.1ブロックを1こずつ集めよう</div><div class="tenths-bar">' + cells.join('') + '</div><div class="bar-label"><span>0</span><strong>いま ' + count + 'こ（' + builtValue + '）</strong><span>1</span></div></div>';
   byId('answer-area').innerHTML = '<div class="builder-controls"><button type="button" class="soft-button" id="builder-minus" ' + (count <= 0 ? 'disabled' : '') + '>− 1こ</button><button type="button" class="builder-add" id="builder-plus" ' + (count >= 10 ? 'disabled' : '') + '>＋ 0.1を1こ</button><button type="button" class="submit-button" id="builder-check">これで完成！</button></div>';
   byId('builder-minus').addEventListener('click', function () { session.buildCount = Math.max(0, count - 1); renderBuilder(); playSound('click'); });
   byId('builder-plus').addEventListener('click', function () { session.buildCount = Math.min(10, count + 1); renderBuilder(); playSound('click'); });
@@ -451,6 +452,7 @@ function renderRegularQuestion() {
   }
 }
 function renderLegacyQuestion() {
+  session.locked = false;
   currentLegacyQuestion = makeLegacyQuestion(currentActivity.mode);
   byId('question-prompt').textContent = currentLegacyQuestion.prompt;
   byId('visual-area').innerHTML = currentActivity.mode === 'monster'
@@ -577,7 +579,10 @@ function advanceQuestion() {
   if (!session || !currentActivity) return;
   session.index += 1;
   if (session.index >= session.total) finishActivity();
-  else renderGame();
+  else {
+    session.locked = false;
+    renderGame();
+  }
 }
 function recordCorrect(explanation) {
   if (currentActivity.type === 'training' && currentQuestion && currentQuestion.mistakeId) {
@@ -679,6 +684,7 @@ function revealAnswer() {
   if (currentActivity.type === 'legacy') {
     const value = currentLegacyQuestion.correctValue;
     setFeedback('こたえは ' + value + ' ' + currentLegacyQuestion.unit + ' だよ。答えを見た分は正解に入らないよ。', '', '？');
+    session.locked = true;
   } else {
     const q = currentQuestion;
     let answerText = q.answer;
@@ -763,6 +769,7 @@ function startWeakTraining() {
     })
   };
   comboManager.reset();
+  lastBadge = null;
   coachRole = NAVI_ROLES.find(function (role) { return role.id === 'nami'; }) || NAVI_ROLES[1];
   showScreen('game');
   renderGame();
@@ -822,6 +829,10 @@ async function init() {
     const badge = event.detail && event.detail.badge;
     if (!badge) return;
     lastBadge = badge;
+    const toast = byId('toast');
+    toast.classList.remove('effect-badge-unlock');
+    void toast.offsetWidth;
+    toast.classList.add('effect-badge-unlock');
     showToast('バッジ「' + badge.name + '」をゲット！');
     playSound('badge');
   });
