@@ -61,16 +61,22 @@ function mergeState(saved) {
 }
 function makeFallbackStorage() {
   const prefix = 'edu:syousuumaster-park:';
+  const memory = new Map();
   return {
     load: function (key, fallback) {
+      if (memory.has(key)) return memory.get(key);
       try {
         const raw = localStorage.getItem(prefix + key);
-        return raw === null ? fallback : JSON.parse(raw);
+        if (raw === null) return fallback;
+        const value = JSON.parse(raw);
+        memory.set(key, value);
+        return value;
       } catch (error) { return fallback; }
     },
     save: function (key, value) {
-      try { localStorage.setItem(prefix + key, JSON.stringify(value)); return true; }
-      catch (error) { return false; }
+      memory.set(key, value);
+      try { localStorage.setItem(prefix + key, JSON.stringify(value)); } catch (error) { /* memory fallback */ }
+      return true;
     }
   };
 }
@@ -688,6 +694,10 @@ function revealAnswer() {
     const value = currentLegacyQuestion.correctValue;
     setFeedback('こたえは ' + value + ' ' + currentLegacyQuestion.unit + ' だよ。答えを見た分は正解に入らないよ。', '', '？');
     session.locked = true;
+    const input = byId('legacy-input');
+    const submit = document.querySelector('#legacy-form button');
+    if (input) input.disabled = true;
+    if (submit) submit.disabled = true;
   } else {
     const q = currentQuestion;
     let answerText = q.answer;
