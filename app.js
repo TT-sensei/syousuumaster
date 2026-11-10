@@ -194,7 +194,7 @@ function showScreen(screenName) {
   byId('home-screen').hidden = screenName !== 'home';
   byId('game-screen').hidden = screenName !== 'game';
   byId('result-screen').hidden = screenName !== 'result';
-  window.scrollTo({ top: 0, behavior: 'instant' });
+  window.scrollTo(0, 0);
 }
 async function playSound(id) {
   if (!soundEnabled || !sounds || typeof sounds.playSound !== 'function') return;
@@ -255,7 +255,7 @@ function questionPiece() {
   return {
     type: 'choice', prompt: '0.1 のブロックが ' + n + 'こ。\nあわせると いくつ？',
     visualCount: n, answer: correct,
-    choices: makeChoices(correct, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '0.0' + n]),
+    choices: makeChoices(correct, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '1.0']),
     hint: '0.1が1こ、2こ、3こ……と増えると、小数の数字も1ずつ増えるよ。',
     explanation: '0.1が' + n + 'こで ' + correct + '。10こ集まると1になるよ。'
   };
@@ -567,7 +567,7 @@ function handleMatch(index) {
     matchedCards.add(index);
     selectedMatch = -1;
     session.matched += 1;
-    recordCorrect(first.value + '/10 と 0.' + first.value は同じ大きさ！'.replace('は','は'));
+    recordCorrect(first.value + '/10 と 0.' + first.value + ' は同じ大きさ！');
     setFeedback(first.value + '/10 = 0.' + first.value + '。同じ大きさだね！', 'good', '✓');
     byId('visual-area').innerHTML = renderTenthsBar(first.value, first.value + '/10 = 0.' + first.value);
     window.setTimeout(function () {
@@ -625,7 +625,6 @@ function revealAnswer() {
 function skipAfterReveal() {
   if (!session) return;
   if (currentActivity.type === 'legacy') {
-    nextLegacyQuestion();
     renderGame();
     return;
   }
