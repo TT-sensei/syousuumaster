@@ -54,9 +54,9 @@ button { -webkit-tap-highlight-color: transparent; }
   background: white; color: #52627d; font-size: 18px; cursor: pointer;
 }
 .icon-button[aria-pressed="false"] { color: #9aa5b7; background: #f3f5f8; }
-.screen { padding-top: 20px; }
+.screen { padding-top: 14px; }
 .world-hero {
-  position: relative; overflow: hidden; min-height: 248px; border-radius: 27px; padding: 25px 34px;
+  position: relative; overflow: hidden; min-height: 174px; border-radius: 27px; padding: 17px 28px;
   display: grid; grid-template-columns: 1.08fr .92fr; align-items: center; gap: 16px;
   background: linear-gradient(105deg, rgba(16,39,83,.90), rgba(30,77,139,.72) 48%, rgba(73,127,190,.22)),
     url("https://tt-sensei.github.io/navi-character-/assets/web/fantasy/backgrounds/sky-island.webp") center 48% / cover;
@@ -76,13 +76,13 @@ button { -webkit-tap-highlight-color: transparent; }
 .hero-progress-label strong { color: white; }
 .progress-track { height: 7px; border-radius: 99px; background: rgba(255,255,255,.23); overflow: hidden; }
 .progress-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg,#ffe19a,#ffbd64); transition: width .3s ease; }
-.hero-art { height: 200px; position: relative; display: flex; align-items: center; justify-content: center; z-index: 1; }
-.hero-group { width: min(100%, 480px); max-height: 220px; object-fit: contain; filter: drop-shadow(0 10px 16px rgba(8,24,52,.25)); }
+.hero-art { height: 150px; position: relative; display: flex; align-items: center; justify-content: center; z-index: 1; }
+ .hero-group { width: min(100%, 430px); max-height: 165px; object-fit: contain; filter: drop-shadow(0 10px 16px rgba(8,24,52,.25)); }
 .hero-footnote { position: absolute; bottom: 14px; right: 22px; z-index: 2; font-size: 10px; color: rgba(255,255,255,.68); }
 .hero-star { position: absolute; color: #ffe5a7; text-shadow: 0 0 14px rgba(255,230,163,.6); }
 .star-one { top: 20px; right: 16%; font-size: 25px; }
 .star-two { bottom: 26px; left: 13%; font-size: 20px; }
-.section-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin: 26px 2px 13px; }
+.section-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin: 12px 2px 7px; }
 .section-heading h2 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
 .section-heading .eyebrow { color: #7892b8; margin-bottom: 3px; }
 .section-note { color: #8190a7; font-size: 11px; font-weight: 700; padding-bottom: 2px; }
@@ -90,30 +90,30 @@ button { -webkit-tap-highlight-color: transparent; }
 .section-heading.compact h2 { font-size: 17px; }
 .activity-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 13px; }
 .activity-card {
-  min-width: 0; min-height: 154px; position: relative; overflow: hidden; text-align: left;
-  border: 1px solid rgba(205,216,233,.8); border-radius: 19px; padding: 15px 14px 13px;
+  min-width: 0; min-height: 124px; position: relative; overflow: hidden; text-align: left;
+  border: 1px solid rgba(205,216,233,.8); border-radius: 19px; padding: 9px 11px 8px;
   background: rgba(255,255,255,.93); color: var(--ink); cursor: pointer;
   box-shadow: 0 5px 15px rgba(37,64,105,.05); transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
 }
 .activity-card:hover, .activity-card:focus-visible { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(37,64,105,.12); border-color: #9bb8e6; outline: none; }
-.card-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.card-topline { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
 .card-category { display: inline-flex; align-items: center; min-height: 21px; border-radius: 999px; padding: 2px 8px; background: #f0f4fb; color: #70809a; font-size: 9px; font-weight: 900; }
 .card-category.violet { color: #7659b8; background: #f3efff; }
 .card-category.blue { color: #3473c9; background: #edf5ff; }
 .card-category.mint { color: #208c78; background: #eaf9f5; }
 .card-category.orange { color: #a46b23; background: #fff5e6; }
 .card-category.gold { color: #957020; background: #fff7df; }
-.card-art { width: 47px; height: 47px; position: absolute; right: 13px; top: 42px; object-fit: contain; opacity: .9; }
+.card-art { width: 37px; height: 37px; position: absolute; right: 11px; top: 38px; object-fit: contain; opacity: .9; }
 .activity-card h3 { position: relative; z-index: 1; max-width: calc(100% - 42px); margin: 0 0 4px; font-size: 16px; line-height: 1.3; }
 .card-subtitle { max-width: calc(100% - 32px); margin: 0 0 7px; color: #65758e; font-size: 10px; font-weight: 800; }
-.card-description { max-width: 100%; min-height: 32px; margin: 0; color: #7e8ba0; font-size: 10px; line-height: 1.55; }
-.card-bottom { display: flex; justify-content: space-between; align-items: center; gap: 7px; margin-top: 9px; }
+.card-description { max-width: 100%; min-height: 25px; margin: 0; color: #7e8ba0; font-size: 9px; line-height: 1.45; }
+.card-bottom { display: flex; justify-content: space-between; align-items: center; gap: 7px; margin-top: 5px; }
 .card-grade { color: #9aa5b6; font-size: 9px; font-weight: 800; }
 .card-state { color: #3976ca; font-size: 9px; font-weight: 900; }
 .activity-card.is-done { border-color: #a8d8cb; background: linear-gradient(145deg,#fff,#f1fcf7); }
 .activity-card.is-done .card-state { color: #17866e; }
 .collection-panel {
-  margin-top: 25px; padding: 17px 19px 18px; border: 1px solid rgba(205,216,233,.8);
+  margin-top: 10px; padding: 10px 14px 11px; border: 1px solid rgba(205,216,233,.8);
   border-radius: 20px; background: rgba(255,255,255,.74);
 }
 .badge-grid { display: grid; grid-template-columns: repeat(8,minmax(0,1fr)); gap: 9px; }
@@ -121,11 +121,11 @@ button { -webkit-tap-highlight-color: transparent; }
   display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; padding: 8px 4px;
   border-radius: 13px; background: rgba(244,247,252,.8); text-align: center;
 }
-.badge-item img { width: 54px; height: 54px; object-fit: contain; }
+.badge-item img { width: 41px; height: 41px; object-fit: contain; }
 .badge-item.locked img { filter: grayscale(1); opacity: .3; }
 .badge-item strong { max-width: 100%; font-size: 9px; line-height: 1.35; }
 .badge-item span { font-size: 8px; color: #8a96a8; line-height: 1.3; }
-.footer-note { text-align: center; margin: 17px 0 0; color: #9aa5b5; font-size: 10px; }
+.footer-note { text-align: center; margin: 8px 0 0; color: #9aa5b5; font-size: 10px; }
 .game-toolbar { display: grid; grid-template-columns: auto 1fr minmax(120px, 210px); align-items: center; gap: 18px; margin-bottom: 15px; }
 .back-button {
   border: 1px solid #dce5f2; background: rgba(255,255,255,.9); color: #5a6b85; border-radius: 12px;
@@ -248,7 +248,7 @@ button { -webkit-tap-highlight-color: transparent; }
 
 .training-banner {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  margin-top: 16px; padding: 13px 18px; border: 1px solid #dfe7f1;
+  margin-top: 9px; padding: 8px 14px; border: 1px solid #dfe7f1;
   border-radius: 17px; background: linear-gradient(100deg,#f4f8ff,#fff);
 }
 .training-banner .eyebrow { color: #8ca0bf; margin-bottom: 3px; }
