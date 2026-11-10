@@ -852,11 +852,6 @@ async function init() {
     showToast('バッジ「' + badge.name + '」をゲット！');
     playSound('badge');
   });
-  document.addEventListener('edu:combo', function (event) {
-    const current = event.detail && event.detail.current;
-    if (current === 3) { showToast('3コンボ！いい調子！'); playSound('decide'); }
-    if (current === 5) { showToast('5コンボ！すごい集中力！'); playSound('badge'); }
-  });
   initEvents();
   renderHome();
   saveState();
