@@ -720,7 +720,15 @@ function advanceQuestion() {
 }
 function recordCorrect(explanation) {
   if (currentActivity.type === 'training' && currentQuestion && currentQuestion.mistakeId) {
-    state.mistakes = state.mistakes.filter(function (mistake) { return mistake.id !== currentQuestion.mistakeId; });
+    const trainingMistake = state.mistakes.find(function (mistake) { return mistake.id === currentQuestion.mistakeId; });
+    if (trainingMistake) {
+      trainingMistake.masteryStreak = (trainingMistake.masteryStreak || 0) + 1;
+      if (trainingMistake.masteryStreak >= 2) {
+        state.mistakes = state.mistakes.filter(function (mistake) { return mistake.id !== currentQuestion.mistakeId; });
+        showToast('この見方を克服！');
+      }
+      updateTrainingDisplay();
+    }
   }
   session.correct += 1;
   session.attempts += 1;
@@ -744,7 +752,7 @@ function recordWrong(message) {
   session.attempts += 1;
   if (currentActivity && currentActivity.type === 'training' && currentQuestion && currentQuestion.mistakeId) {
     const trainingMistake = state.mistakes.find(function (mistake) { return mistake.id === currentQuestion.mistakeId; });
-    if (trainingMistake) { trainingMistake.attempts = (trainingMistake.attempts || 1) + 1; trainingMistake.lastSeenAt = Date.now(); saveState(); updateTrainingDisplay(); }
+    if (trainingMistake) { trainingMistake.attempts = (trainingMistake.attempts || 1) + 1; trainingMistake.masteryStreak = 0; trainingMistake.lastSeenAt = Date.now(); saveState(); updateTrainingDisplay(); }
   }
   if (currentActivity && currentActivity.type !== 'training') {
     const sourceQuestion = currentQuestion || currentLegacyQuestion;
@@ -915,25 +923,29 @@ function questionForMistake(mistake) {
 function startWeakTraining() {
   const mistakes = state.mistakes.slice().sort(function (a, b) { return (b.attempts || 1) - (a.attempts || 1) || (b.lastSeenAt || b.createdAt || 0) - (a.lastSeenAt || a.createdAt || 0); }).slice(0, 8);
   if (!mistakes.length) { showToast('今は特訓する問題がないよ。'); return; }
-  currentActivity = { id: 'weak-training', title: '弱点特訓', type: 'training', category: 'まちがえた内容を復習', questionCount: mistakes.length, badge: null };
+  currentActivity = { id: 'weak-training', title: '弱点特訓', type: 'training', category: 'まちがえた内容を復習', questionCount: mistakes.length * 2, badge: null };
   currentQuestion = null;
   currentLegacyQuestion = null;
   session = {
-    id: 'weak-training', total: mistakes.length, correct: 0, attempts: 0, index: 0,
+    id: 'weak-training', total: mistakes.length * 2, correct: 0, attempts: 0, index: 0,
     matched: 0, skipped: 0, revealed: 0, locked: false, skillLabels: [],
     questions: (function () {
       const seenKeys = new Set();
-      return mistakes.map(function (mistake) {
-        let question = questionForMistake(mistake);
-        let guard = 0;
-        while (seenKeys.has(questionKey(question)) && guard < 12) {
-          guard += 1;
-          question = questionForMistake(mistake);
+      const questions = [];
+      mistakes.forEach(function (mistake) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          let question = questionForMistake(mistake);
+          let guard = 0;
+          while (seenKeys.has(questionKey(question)) && guard < 30) {
+            guard += 1;
+            question = questionForMistake(mistake);
+          }
+          seenKeys.add(questionKey(question));
+          question.mistakeId = mistake.id;
+          questions.push(question);
         }
-        seenKeys.add(questionKey(question));
-        question.mistakeId = mistake.id;
-        return question;
       });
+      return questions;
     })()
   };
   comboManager.reset();
