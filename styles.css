@@ -389,3 +389,31 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 700px) {
   .result-learning { padding: 9px 11px; font-size: 11px; }
 }
+
+
+/* Result reflection: make the next learning step clear without crowding the score. */
+.result-detail {
+  margin: 8px auto 0;
+  color: #718099;
+  font-size: 11px;
+  line-height: 1.6;
+  font-weight: 800;
+}
+.result-next-step {
+  width: min(560px,100%);
+  margin: 10px auto 4px;
+  padding: 12px 15px;
+  border-radius: 14px;
+  background: #f1f7ff;
+  color: #3e5e88;
+  font-size: 12px;
+  line-height: 1.7;
+  font-weight: 800;
+}
+@media (max-width: 700px) {
+  .result-detail { font-size: 10px; }
+  .result-next-step { padding: 10px 12px; font-size: 11px; }
+  .result-actions { flex-wrap: wrap; }
+  .result-actions button { flex: 1 1 145px; }
+  .choice-button, .match-card, .line-tick { touch-action: manipulation; }
+}
