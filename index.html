@@ -82,7 +82,7 @@
             <p id="coach-line" class="coach-line">図を見ながら考えてみよう。</p>
             <div class="coach-stars">★ <span id="game-stars">0</span></div>
           </aside>
-          <section class="question-panel">
+          <section class="question-panel" id="question-panel">
             <div class="question-heading"><span class="mini-tag" id="game-category">小数のしくみ</span><span class="question-count" id="question-count">1 / 8</span></div>
             <h2 id="question-prompt" class="question-prompt">問題がここに表示されます</h2>
             <div id="visual-area" class="visual-area"></div>
@@ -107,6 +107,9 @@
           <h1 id="result-title">チャレンジ終了！</h1>
           <p id="result-message" class="result-message">挑戦したことが力になるよ。</p>
           <div class="result-score"><strong id="result-correct">0</strong><span id="result-total"> / 8 問正解</span></div>
+          <p class="result-learning" id="result-learning" aria-live="polite"></p>
+          <p class="result-detail" id="result-detail"></p>
+          <p class="result-next-step" id="result-next-step"></p>
           <div class="result-badge" id="result-badge"></div>
           <div class="result-actions">
             <button class="primary-button" id="retry-activity" type="button">もう一度あそぶ</button>
