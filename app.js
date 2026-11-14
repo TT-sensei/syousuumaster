@@ -436,6 +436,23 @@ function questionDecimalToFraction() {
     explanation: '0.' + n + ' は ' + correct + ' と同じ大きさだよ。'
   };
 }
+function questionLinkThreeWays() {
+  const n = randomInt(1, 9);
+  const answer = n + '/10 ＝ 0.' + n + ' ＝ ' + n + 'つ目';
+  const alternatives = shuffled(Array.from({ length: 9 }, function (_, index) { return index + 1; })
+    .filter(function (value) { return value !== n; })).slice(0, 3)
+    .map(function (value) { return value + '/10 ＝ 0.' + value + ' ＝ ' + value + 'つ目'; });
+  return {
+    type: 'link-three', skillId: 'three-way-equivalence',
+    skillLabel: '図・分数・小数・数直線を結び付ける',
+    prompt: 'この図と同じ大きさを表している組み合わせは？',
+    visualCount: n, markerCount: n, answer: answer,
+    choices: makeChoices(answer, alternatives),
+    wrongFeedback: '色のついた部分は0.1が何こ分かな。分数の分子と数直線の目盛りも同じ数になるよ。',
+    hint: '1を10こに分けたうちの何こ分かを、図・分数・小数・数直線でそれぞれ確かめよう。',
+    explanation: n + '/10 は、1を10こに分けたうちの' + n + 'こ分。小数では0.' + n + '、数直線では0から' + n + 'つ目の目盛りだよ。'
+  };
+}
 function questionKey(q) {
   return [q.skillId || '', q.type, q.prompt, q.answer, q.left || '', q.right || '', q.targetCount || '', q.markerCount || ''].join('|');
 }
@@ -455,7 +472,7 @@ function buildQuestions(producer, count) {
 }
 function createQuestions(activity) {
   if (activity.type === 'numberline') {
-    const gens = shuffled([questionNumberLine, questionNumberLineFraction, questionNumberLineRead]);
+    const gens = shuffled([questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionLinkThreeWays]);
     return buildQuestions(function (i) { return gens[i % gens.length](); }, activity.questionCount);
   }
   if (activity.type === 'builder') {
@@ -465,7 +482,7 @@ function createQuestions(activity) {
     return buildQuestions(function () { return Math.random() < .5 ? questionCompare() : questionCompareSmall(); }, activity.questionCount);
   }
   if (activity.type === 'mixed') {
-    const gens = shuffled([questionPiece, questionCountTenths, questionFraction, questionDecimalToFraction, questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionCompare, questionCompareSmall, questionComplement, questionDecimalToCount, questionBuilder]);
+    const gens = shuffled([questionPiece, questionCountTenths, questionFraction, questionDecimalToFraction, questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionLinkThreeWays, questionCompare, questionCompareSmall, questionComplement, questionDecimalToCount, questionBuilder]);
     return buildQuestions(function (i) { return gens[i % gens.length](); }, activity.questionCount);
   }
   return [];
@@ -548,6 +565,9 @@ function renderRegularQuestion() {
   let visual = '';
   if (currentQuestion.type === 'numberline') visual = '<div class="tenths-caption">0から1まで、10こに分けた数直線</div>';
   if (Number.isFinite(currentQuestion.visualCount)) visual += renderTenthsBar(currentQuestion.visualCount, '1を10こに分けたテープ');
+  if (currentQuestion.type === 'link-three') {
+    visual += renderStaticNumberLine(currentQuestion.markerCount);
+  }
   if (currentQuestion.type === 'compare') {
     visual += '<div class="compare-visual">' +
       '<div class="compare-side"><strong>' + currentQuestion.left + '</strong>' + renderTenthsBar(currentQuestion.leftCount, '左のテープ') + '</div>' +
@@ -919,7 +939,7 @@ function questionForMistake(mistake) {
     'fraction-to-decimal': questionFraction, 'decimal-to-fraction': questionDecimalToFraction, 'build-tenths': questionBuilder,
     'compare-tenths': function () { return Math.random() < .5 ? questionCompare() : questionCompareSmall(); },
     'decimal-on-numberline': questionNumberLine, 'fraction-on-numberline': questionNumberLineFraction,
-    'read-numberline': questionNumberLineRead, 'complement-to-one': questionComplement
+    'read-numberline': questionNumberLineRead, 'complement-to-one': questionComplement, 'three-way-equivalence': questionLinkThreeWays
   };
   if (skillId.indexOf('legacy-') === 0) return makeLegacyTrainingQuestion(skillId.slice(7));
   if (generators[skillId]) return generators[skillId]();
