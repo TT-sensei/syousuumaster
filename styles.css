@@ -198,6 +198,11 @@ button { -webkit-tap-highlight-color: transparent; }
 }
 .match-card.fraction { color: #7058b5; background: #f8f5ff; }
 .match-card.decimal { color: #277b91; background: #f1fbfc; }
+.match-card.figure { background: #fdf6ec; }
+.match-fig { display: inline-flex; gap: 2px; align-items: center; }
+.match-cell { width: 11px; height: 20px; border-radius: 3px; border: 1px solid #d8e2f0; background: white; }
+.match-cell.filled { border-color: #5b91df; background: linear-gradient(150deg,#86b7fa,#4e83d5); }
+.figure-toggle { text-align: center; margin: 10px 0 2px; }
 .match-card.selected { border-color: #699ce2; box-shadow: 0 0 0 3px #dceaff; transform: translateY(-2px); }
 .match-card.matched { opacity: .33; border-color: #9dd7c5; background: #f0fbf6; cursor: default; }
 .match-status { color: #8190a7; font-size: 10px; font-weight: 900; margin-top: 7px; }

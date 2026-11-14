@@ -366,6 +366,7 @@ function questionCompareWith(smaller) {
     type: 'compare', skillId: 'compare-tenths', skillLabel: '小数の大きさを比べる',
     prompt: smaller ? '小さいのはどちら？' : '大きいのはどちら？',
     left: '0.' + a, right: '0.' + b, leftCount: a, rightCount: b, answer: answer,
+    hideFigure: Math.random() < .5,
     choices: [
       { value: 'left', label: smaller ? '左が小さい' : '左が大きい' },
       { value: 'same', label: '同じ大きさ' },
@@ -439,9 +440,13 @@ function questionDecimalToFraction() {
 function questionLinkThreeWays() {
   const n = randomInt(1, 9);
   const answer = n + '/10 ＝ 0.' + n + ' ＝ ' + n + 'つ目';
-  const alternatives = shuffled(Array.from({ length: 9 }, function (_, index) { return index + 1; })
-    .filter(function (value) { return value !== n; })).slice(0, 3)
-    .map(function (value) { return value + '/10 ＝ 0.' + value + ' ＝ ' + value + 'つ目'; });
+  const others = shuffled(Array.from({ length: 9 }, function (_, index) { return index + 1; })
+    .filter(function (value) { return value !== n; }));
+  const alternatives = [
+    others[0] + '/10 ＝ 0.' + n + ' ＝ ' + n + 'つ目',
+    n + '/10 ＝ 0.' + others[1] + ' ＝ ' + n + 'つ目',
+    n + '/10 ＝ 0.' + n + ' ＝ ' + others[2] + 'つ目'
+  ];
   return {
     type: 'link-three', skillId: 'three-way-equivalence',
     skillLabel: '図・分数・小数・数直線を結び付ける',
@@ -487,12 +492,21 @@ function createQuestions(activity) {
   }
   return [];
 }
+function matchFigureLabel(n) {
+  const cells = [];
+  for (let i = 1; i <= 10; i += 1) cells.push('<span class="match-cell ' + (i <= n ? 'filled' : '') + '"></span>');
+  return '<span class="match-fig">' + cells.join('') + '</span>';
+}
 function createMatchCards() {
   const values = shuffled([1, 2, 3, 4, 5, 6, 7, 8, 9]).slice(0, 6);
+  const kindPairs = shuffled([['fraction', 'decimal'], ['decimal', 'figure'], ['fraction', 'figure'], ['fraction', 'decimal'], ['decimal', 'figure'], ['fraction', 'figure']]);
   const cards = [];
-  values.forEach(function (n) {
-    cards.push({ key: String(n), value: n, label: n + '/10', kind: 'fraction' });
-    cards.push({ key: String(n), value: n, label: '0.' + n, kind: 'decimal' });
+  values.forEach(function (n, index) {
+    kindPairs[index].forEach(function (kind) {
+      if (kind === 'fraction') cards.push({ key: String(n), value: n, label: n + '/10', text: n + '/10', kind: 'fraction' });
+      else if (kind === 'decimal') cards.push({ key: String(n), value: n, label: '0.' + n, text: '0.' + n, kind: 'decimal' });
+      else cards.push({ key: String(n), value: n, label: matchFigureLabel(n), text: 'この図', kind: 'figure' });
+    });
   });
   return shuffled(cards);
 }
@@ -569,9 +583,18 @@ function renderRegularQuestion() {
     visual += renderStaticNumberLine(currentQuestion.markerCount);
   }
   if (currentQuestion.type === 'compare') {
-    visual += '<div class="compare-visual">' +
+    const tapes = '<div class="compare-visual">' +
       '<div class="compare-side"><strong>' + currentQuestion.left + '</strong>' + renderTenthsBar(currentQuestion.leftCount, '左のテープ') + '</div>' +
       '<div class="compare-side"><strong>' + currentQuestion.right + '</strong>' + renderTenthsBar(currentQuestion.rightCount, '右のテープ') + '</div></div>';
+    if (currentQuestion.hideFigure) {
+      visual += '<div class="compare-visual compare-numbers-only" id="compare-numbers">' +
+        '<div class="compare-side"><strong>' + currentQuestion.left + '</strong></div>' +
+        '<div class="compare-side"><strong>' + currentQuestion.right + '</strong></div></div>' +
+        '<div class="figure-toggle"><button type="button" class="soft-button" id="show-figure-button">図を見る</button></div>' +
+        '<div id="compare-figure" hidden>' + tapes + '</div>';
+    } else {
+      visual += tapes;
+    }
   }
   if (currentQuestion.type === 'builder') {
     renderBuilder();
@@ -592,6 +615,17 @@ function renderRegularQuestion() {
     byId('answer-area').innerHTML = renderChoiceButtons(currentQuestion);
     Array.from(document.querySelectorAll('[data-choice]')).forEach(function (button) {
       button.addEventListener('click', function () { submitAnswer(button.dataset.choice, button); });
+    });
+  }
+  const figureButton = byId('show-figure-button');
+  if (figureButton) {
+    figureButton.addEventListener('click', function () {
+      const figure = byId('compare-figure');
+      if (figure) figure.hidden = false;
+      const numbers = byId('compare-numbers');
+      if (numbers) numbers.hidden = true;
+      figureButton.hidden = true;
+      playSound('click');
     });
   }
 }
@@ -820,7 +854,7 @@ function handleMatch(index) {
     renderMatchCards();
     playSound('click');
     const selected = matchCards[index];
-    byId('visual-area').innerHTML = renderTenthsBar(selected.value, selected.label + ' の大きさ');
+    byId('visual-area').innerHTML = renderTenthsBar(selected.value, (selected.text || selected.label) + ' の大きさ');
     setFeedback('もう1まい、同じ大きさを探そう。', '', '');
     return;
   }
