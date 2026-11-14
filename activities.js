@@ -1,6 +1,7 @@
 export const ACTIVITIES = [
   {
     id: 'fraction-match',
+    skillLabel: '分数と小数の同じ大きさを結び付ける',
     title: '分数小数マッチ',
     subtitle: '同じ大きさを見つけよう',
     description: '1/10 と 0.1、3/10 と 0.3。図も使ってペアをそろえよう。',
