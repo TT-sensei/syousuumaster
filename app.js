@@ -46,7 +46,26 @@ function shuffled(items) {
   return copy;
 }
 function defaultState() {
-  return { version: 1, stars: 0, totalCorrect: 0, bestCombo: 0, soundEnabled: true, activities: {}, mistakes: [] };
+  return { version: 2, stars: 0, totalCorrect: 0, bestCombo: 0, soundEnabled: true, activities: {}, mistakes: [] };
+}
+function skillIdForActivity(activityId, mode) {
+  if (activityId === 'classic-monster' || activityId === 'classic-juice' || activityId === 'classic-ruler') return 'legacy-' + (mode || 'monster');
+  return ({ 'fraction-match': 'fraction-to-decimal', 'number-line': 'decimal-on-numberline', 'decimal-builder': 'build-tenths', 'compare-battle': 'compare-tenths', 'mixed-challenge': 'mixed-core' })[activityId] || 'decimal-core';
+}
+function normalizeMistakes(items) {
+  const grouped = new Map();
+  (Array.isArray(items) ? items : []).forEach(function (item) {
+    if (!item || typeof item !== 'object') return;
+    const skillId = item.skillId || skillIdForActivity(item.activityId, item.mode);
+    const existing = grouped.get(skillId);
+    if (existing) {
+      existing.attempts += Math.max(1, Number(item.attempts) || 1);
+      existing.lastSeenAt = Math.max(existing.lastSeenAt || existing.createdAt || 0, item.lastSeenAt || item.createdAt || 0);
+    } else {
+      grouped.set(skillId, Object.assign({}, item, { id: item.id || skillId + '-' + Date.now(), skillId: skillId, attempts: Math.max(1, Number(item.attempts) || 1), createdAt: item.createdAt || Date.now(), lastSeenAt: item.lastSeenAt || item.createdAt || Date.now() }));
+    }
+  });
+  return Array.from(grouped.values()).slice(-30);
 }
 function mergeState(saved) {
   const base = defaultState();
@@ -56,7 +75,7 @@ function mergeState(saved) {
   base.bestCombo = Number.isFinite(saved.bestCombo) ? Math.max(0, saved.bestCombo) : 0;
   base.soundEnabled = saved.soundEnabled !== false;
   base.activities = saved.activities && typeof saved.activities === 'object' ? saved.activities : {};
-  base.mistakes = Array.isArray(saved.mistakes) ? saved.mistakes.slice(-50) : [];
+  base.mistakes = normalizeMistakes(saved.mistakes);
   return base;
 }
 function makeFallbackStorage() {
@@ -195,12 +214,14 @@ function renderActivities() {
 }
 function updateTrainingDisplay() {
   const count = state.mistakes.length;
+  const attempts = state.mistakes.reduce(function (sum, mistake) { return sum + Math.max(1, mistake.attempts || 1); }, 0);
   const button = byId('weak-training-button');
   byId('training-summary').textContent = count
-    ? 'まちがえた内容が ' + count + ' 件あるよ。近い問題でもう一度たしかめよう。'
-    : '今は特訓する問題がないよ。まちがえた問題はここに集まるよ。';
+    ? '苦手な見方が ' + count + ' 種類あるよ。まちがえた回数も手がかりにして、近い問題で確かめよう。'
+    : '今は特訓する問題がないよ。まちがえた見方はここに集まるよ。';
   button.disabled = count === 0;
-  button.textContent = count ? '弱点特訓をはじめる (' + Math.min(8, count) + '問)' : '特訓する問題はまだないよ';
+  button.textContent = count ? '弱点特訓をはじめる (' + Math.min(8, count) + '種類)' : '特訓する問題はまだないよ';
+  button.title = count ? 'これまでの誤答 ' + attempts + ' 回をもとにした特訓' : '';
 }
 function renderHome() {
   updateTopStatus();
@@ -268,11 +289,15 @@ function chooseOtherTenths(correct, count) {
   for (let n = 1; n <= 9; n += 1) if (String(n) !== String(correct)) pool.push(n);
   return shuffled(pool).slice(0, count).map(String);
 }
+function formatTenths(count) { return count === 10 ? '1.0' : '0.' + count; }
+function numberLineDistractors(correctCount) {
+  return shuffled(Array.from({ length: 11 }, function (_, index) { return index; }).filter(function (n) { return n !== correctCount; })).slice(0, 3).map(formatTenths);
+}
 function questionPiece() {
   const n = randomInt(1, 9);
   const correct = '0.' + n;
   return {
-    type: 'choice', prompt: '0.1 のブロックが ' + n + 'こ。\nあわせると いくつ？',
+    type: 'choice', skillId: 'tenths-to-decimal', skillLabel: '0.1のいくつ分かを小数で表す', wrongFeedback: 'ブロックを1こずつ数えてみよう。青いブロックが何こあるかな？', prompt: '0.1 のブロックが ' + n + 'こ。\nあわせると いくつ？',
     visualCount: n, answer: correct,
     choices: makeChoices(correct, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '1.0']),
     hint: '0.1が1こ、2こ、3こ……と増えると、小数の数字も1ずつ増えるよ。',
@@ -282,7 +307,7 @@ function questionPiece() {
 function questionBuilder() {
   const n = randomInt(1, 9);
   return {
-    type: 'builder',
+    type: 'builder', skillId: 'build-tenths', skillLabel: '0.1を集めて小数をつくる', wrongFeedback: '目標の数と今のブロックの数を比べて、あと何こ必要か考えよう。',
     prompt: '0.1 のブロックを集めて、0.' + n + ' をつくろう！',
     targetCount: n,
     answer: '0.' + n,
@@ -293,17 +318,17 @@ function questionBuilder() {
 function questionCountTenths() {
   const n = randomInt(1, 9);
   return {
-    type: 'choice', prompt: n + 'こ分の 0.1。\n小数で表すと？',
+    type: 'choice', skillId: 'count-tenths', skillLabel: '0.1が何こ分かを小数で表す', wrongFeedback: '0.1を1こ、2こ、3こ……と並べたとき、全部で何こ分か確かめよう。', prompt: n + 'こ分の 0.1。\n小数で表すと？',
     visualCount: n, answer: '0.' + n,
     choices: makeChoices('0.' + n, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), n + '.0']),
     hint: '1を10こに分けた1こ分が0.1。いくつ分あるか数えよう。',
-    explanation: '0.1が' + n + 'こ分だから、' + n + '÷10の大きさで ' + '0.' + n + ' だよ。'
+    explanation: '0.1が' + n + 'こ分だから、0.' + n + ' だよ。'
   };
 }
 function questionDecimalToCount() {
   const n = randomInt(1, 9);
   return {
-    type: 'choice', prompt: '0.' + n + ' は、0.1 が何こ分？',
+    type: 'choice', skillId: 'decimal-to-count', skillLabel: '小数が0.1の何こ分かを読む', wrongFeedback: '0.1を何こ集めるとこの数になるか、テープの区切りを数えてみよう。', prompt: '0.' + n + ' は、0.1 が何こ分？',
     visualCount: n, answer: String(n),
     choices: makeChoices(String(n), [String(n === 1 ? 2 : n - 1), String(n === 9 ? 8 : n + 1), String(n * 10)]),
     hint: '小数の小数点の右にある数字を見てみよう。0.1が何こ分かを表しているよ。',
@@ -314,7 +339,7 @@ function questionFraction() {
   const n = randomInt(1, 9);
   const answer = '0.' + n;
   return {
-    type: 'choice', prompt: n + '/10 と同じ大きさの小数は？',
+    type: 'choice', skillId: 'fraction-to-decimal', skillLabel: '十分のいくつを小数で表す', wrongFeedback: '分母の10は1を10こに分けたこと。分子の数だけ色をぬった図と比べよう。', prompt: n + '/10 と同じ大きさの小数は？',
     visualCount: n, answer: answer,
     choices: makeChoices(answer, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '1.0']),
     hint: '分母の10は、1を10こに分けたこと。分子は、そのうち何こ分かを表すよ。',
@@ -333,7 +358,7 @@ function questionCompareWith(smaller) {
   const winCount = a > b ? a : b;
   const loseCount = a > b ? b : a;
   return {
-    type: 'compare',
+    type: 'compare', skillId: 'compare-tenths', skillLabel: '小数の大きさを比べる',
     prompt: smaller ? '小さいのはどちら？' : '大きいのはどちら？',
     left: '0.' + a, right: '0.' + b, leftCount: a, rightCount: b, answer: answer,
     choices: [
@@ -341,6 +366,8 @@ function questionCompareWith(smaller) {
       { value: 'same', label: '同じ大きさ' },
       { value: 'right', label: smaller ? '右が小さい' : '右が大きい' }
     ],
+    answerLabel: answer === 'same' ? '同じ大きさ' : (smaller ? (answer === 'left' ? '左が小さい' : '右が小さい') : (answer === 'left' ? '左が大きい' : '右が大きい')),
+    wrongFeedback: '左右のテープを見比べて、青い部分が何こ分ずつあるか確かめよう。',
     hint: '0.1のいくつ分かを比べると、大きさが見えてくるよ。',
     explanation: a === b ? 'どちらも0.1が' + a + 'こ分。だから同じ大きさだよ。' :
       (smaller
@@ -349,39 +376,43 @@ function questionCompareWith(smaller) {
   };
 }
 function questionNumberLine() {
-  const n = randomInt(1, 9);
+  const n = randomInt(0, 10);
+  const value = formatTenths(n);
   return {
-    type: 'numberline', prompt: '0.' + n + ' はどこの目盛り？',
-    answer: '0.' + n,
-    hint: '0から1までを10こに分けて、左から' + n + 'つ目の目盛りを探そう。',
-    explanation: '0.' + n + ' は、0から数えて' + n + 'つ目の目盛りだよ。'
+    type: 'numberline', skillId: 'decimal-on-numberline', skillLabel: '小数を数直線の位置で表す',
+    prompt: value + ' はどこの目盛り？', answer: value,
+    wrongFeedback: '0と1の位置を確かめて、そこから目盛りをいくつ進むか数えよう。',
+    hint: '0から1までを10こに分けた目盛りを、左から数えてみよう。',
+    explanation: value + ' は、0から数えて' + n + 'つ目の目盛りだよ。'
   };
 }
 function questionNumberLineFraction() {
   const n = randomInt(1, 9);
   return {
-    type: 'numberline', prompt: n + '/10 はどこの目盛り？',
+    type: 'numberline', skillId: 'fraction-on-numberline', skillLabel: '十分のいくつを数直線に表す', prompt: n + '/10 はどこの目盛り？',
     answer: '0.' + n,
-    hint: n + '/10 は、0.1が' + n + 'こ分。左から' + n + 'つ目の目盛りを探そう。',
+    wrongFeedback: '分数の分子の数だけ、0から右へ目盛りを数えよう.',
+    hint: n + '/10 は、0.1が' + n + 'こ分。左から' + n + 'つ目の目盛りを探そう。
     explanation: n + '/10 は 0.' + n + ' と同じ大きさ。0から数えて' + n + 'つ目の目盛りだよ。'
   };
 }
 function questionNumberLineRead() {
-  const n = randomInt(1, 9);
-  const correct = '0.' + n;
+  const n = randomInt(0, 10);
+  const correct = formatTenths(n);
   return {
-    type: 'numberline-read', prompt: '▼ の目盛りはいくつ？',
-    markerCount: n, answer: correct,
-    choices: makeChoices(correct, ['0.' + (n === 1 ? 2 : n - 1), '0.' + (n === 9 ? 8 : n + 1), '1.0']),
+    type: 'numberline-read', skillId: 'read-numberline', skillLabel: '数直線の目盛りを小数で読む',
+    prompt: '▼ の目盛りはいくつ？', markerCount: n, answer: correct,
+    choices: makeChoices(correct, numberLineDistractors(n)),
+    wrongFeedback: '0から▼まで、目盛りをいくつ進んだか数えてみよう。右端は1だよ。',
     hint: '0から右へ、目盛りを1つずつ数えてみよう。',
-    explanation: '▼ は、0から数えて' + n + 'つ目の目盛り。0.' + n + ' だよ。'
+    explanation: '▼ は、0から数えて' + n + 'つ目の目盛り。' + correct + ' だよ。'
   };
 }
 function questionComplement() {
   const n = randomInt(1, 9);
   const rest = 10 - n;
   return {
-    type: 'choice', prompt: '0.' + n + ' に、あと 0.1 が何こ分で 1 になる？',
+    type: 'choice', skillId: 'complement-to-one', skillLabel: '1になるまでの0.1の数を考える', wrongFeedback: '1は0.1が10こ分。今ある数と10こ分の差を考えよう。', prompt: '0.' + n + ' に、あと 0.1 が何こ分で 1 になる？',
     visualCount: n, answer: String(rest),
     choices: makeChoices(String(rest), [String(rest === 1 ? 2 : rest - 1), String(rest === 9 ? 8 : rest + 1), String(n)]),
     hint: '0.1が10こ分で1。いま ' + n + ' こあるから、あと何こ必要かな。',
@@ -393,7 +424,7 @@ function questionDecimalToFraction() {
   const correct = n + '/10';
   const others = chooseOtherTenths(n, 3).map(function (k) { return k + '/10'; });
   return {
-    type: 'choice', prompt: '0.' + n + ' と同じ大きさの分数は？',
+    type: 'choice', skillId: 'decimal-to-fraction', skillLabel: '小数を十分のいくつの分数で表す', wrongFeedback: '0.' + n + ' は0.1が何こ分かを考えて、分子にその数を入れよう。', prompt: '0.' + n + ' と同じ大きさの分数は？',
     visualCount: n, answer: correct,
     choices: makeChoices(correct, others),
     hint: '0.' + n + ' は、1を10こに分けたうちの' + n + 'こ分だよ。',
@@ -401,7 +432,7 @@ function questionDecimalToFraction() {
   };
 }
 function questionKey(q) {
-  return [q.type, q.prompt, q.answer, q.left || '', q.right || '', q.targetCount || '', q.markerCount || ''].join('|');
+  return [q.skillId || '', q.type, q.prompt, q.answer, q.left || '', q.right || '', q.targetCount || '', q.markerCount || ''].join('|');
 }
 function buildQuestions(producer, count) {
   const list = [];
@@ -429,7 +460,7 @@ function createQuestions(activity) {
     return buildQuestions(function () { return Math.random() < .5 ? questionCompare() : questionCompareSmall(); }, activity.questionCount);
   }
   if (activity.type === 'mixed') {
-    const gens = shuffled([questionPiece, questionFraction, questionDecimalToFraction, questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionCompare, questionCompareSmall, questionComplement, questionDecimalToCount, questionBuilder]);
+    const gens = shuffled([questionPiece, questionCountTenths, questionFraction, questionDecimalToFraction, questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionCompare, questionCompareSmall, questionComplement, questionDecimalToCount, questionBuilder]);
     return buildQuestions(function (i) { return gens[i % gens.length](); }, activity.questionCount);
   }
   return [];
@@ -559,16 +590,18 @@ function makeLegacyQuestion(mode) {
   const valDec = Number(d1 + '.' + d2);
   const valInt = d1 * 10 + d2;
   const isRev = Math.random() > .5;
+  let question;
   if (mode === 'juice') {
-    if (!isRev) return { prompt: valDec.toFixed(1) + ' L は\n何 dL かな？', correctValue: valInt, unit: 'dL' };
-    return { prompt: valInt + ' dL は\n何 L かな？', correctValue: valDec, unit: 'L' };
+    question = !isRev ? { prompt: valDec.toFixed(1) + ' L は\n何 dL かな？', correctValue: valInt, unit: 'dL' } : { prompt: valInt + ' dL は\n何 L かな？', correctValue: valDec, unit: 'L' };
+  } else if (mode === 'ruler') {
+    question = !isRev ? { prompt: valInt + ' mm は\n何 cm かな？', correctValue: valDec, unit: 'cm' } : { prompt: valDec.toFixed(1) + ' cm は\n何 mm かな？', correctValue: valInt, unit: 'mm' };
+  } else {
+    question = !isRev ? { prompt: valDec.toFixed(1) + ' のなかに\n0.1 は何こある？', correctValue: valInt, unit: 'こ' } : { prompt: '0.1 を ' + valInt + ' こ あつめると？', correctValue: valDec, unit: '' };
   }
-  if (mode === 'ruler') {
-    if (!isRev) return { prompt: valInt + ' mm は\n何 cm かな？', correctValue: valDec, unit: 'cm' };
-    return { prompt: valDec.toFixed(1) + ' cm は\n何 mm かな？', correctValue: valInt, unit: 'mm' };
-  }
-  if (!isRev) return { prompt: valDec.toFixed(1) + ' のなかに\n0.1 は何こある？', correctValue: valInt, unit: 'こ' };
-  return { prompt: '0.1 を ' + valInt + ' こ あつめると？', correctValue: valDec, unit: '' };
+  question.skillId = 'legacy-' + mode;
+  question.skillLabel = mode === 'juice' ? 'LとdLの単位の関係' : (mode === 'ruler' ? 'cmとmmの単位の関係' : '0.1が何こ分かを考える');
+  question.wrongFeedback = mode === 'juice' ? '1 Lは10 dL。LからdL、dLからLのどちら向きかを確かめよう。' : (mode === 'ruler' ? '1 cmは10 mm。cmからmm、mmからcmのどちら向きかを確かめよう。' : '0.1が何こ分あるか、数や図で確かめよう。');
+  return question;
 }
 function renderGame() {
   if (!currentActivity || !session) return;
@@ -588,6 +621,10 @@ function renderGame() {
   } else {
     renderRegularQuestion();
   }
+  const skillLabel = currentQuestion && currentQuestion.skillLabel ? currentQuestion.skillLabel
+    : (currentLegacyQuestion && currentLegacyQuestion.skillLabel ? currentLegacyQuestion.skillLabel : (currentActivity.skillLabel || '小数の見方'));
+  if (!session.skillLabels) session.skillLabels = [];
+  if (!session.skillLabels.includes(skillLabel)) session.skillLabels.push(skillLabel);
   updateGameMeter();
   updateTopStatus();
 }
@@ -597,7 +634,7 @@ function startActivity(id) {
   currentActivity = activity;
   session = {
     id: id, total: activity.questionCount, correct: 0, attempts: 0, index: 0,
-    matched: 0, skipped: 0, revealed: 0, locked: false, questions: []
+    matched: 0, skipped: 0, revealed: 0, locked: false, questions: [], skillLabels: []
   };
   lastBadge = null;
   selectedMatch = -1;
@@ -636,6 +673,8 @@ function finishActivity() {
     : '最後まで挑戦できたね。もう一度遊ぶと、もっと分かるよ。';
   byId('result-correct').textContent = String(session.correct);
   byId('result-total').textContent = ' / ' + session.total + ' 問正解';
+  const learningBox = byId('result-learning');
+  if (learningBox) learningBox.textContent = session.skillLabels && session.skillLabels.length ? '今回使った見方：' + session.skillLabels.join(' ・ ') : '';
   const badgeBox = byId('result-badge');
   if (lastBadge) {
     badgeBox.innerHTML = '<img src="' + lastBadge.image + '" alt=""><span>バッジ「' + lastBadge.name + '」をゲット！</span>';
@@ -660,7 +699,7 @@ function submitAnswer(value, button) {
     window.setTimeout(advanceQuestion, 700);
   } else {
     if (button) button.classList.add('wrong');
-    recordWrong('おしい！0.1が何こ分か、図でもう一度見てみよう。');
+    recordWrong(currentQuestion.wrongFeedback || 'おしい！図や目盛りを使って、もう一度考えてみよう。');
   }
 }
 function advanceQuestion() {
@@ -697,13 +736,16 @@ function recordCorrect(explanation) {
 function recordWrong(message) {
   session.attempts += 1;
   if (currentActivity && currentActivity.type !== 'training') {
-    state.mistakes.push({
-      id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7),
-      activityId: currentActivity.id,
-      mode: currentActivity.mode || null,
-      createdAt: Date.now()
-    });
-    state.mistakes = state.mistakes.slice(-50);
+    const sourceQuestion = currentQuestion || currentLegacyQuestion;
+    const skillId = sourceQuestion && sourceQuestion.skillId ? sourceQuestion.skillId : skillIdForActivity(currentActivity.id, currentActivity.mode);
+    const existing = state.mistakes.find(function (mistake) { return mistake.skillId === skillId; });
+    if (existing) {
+      existing.attempts = (existing.attempts || 1) + 1;
+      existing.lastSeenAt = Date.now();
+    } else {
+      state.mistakes.push({ id: String(Date.now()) + '-' + Math.random().toString(36).slice(2, 7), activityId: currentActivity.id, mode: currentActivity.mode || null, skillId: skillId, attempts: 1, createdAt: Date.now(), lastSeenAt: Date.now() });
+    }
+    state.mistakes = state.mistakes.slice(-30);
     saveState();
     updateTrainingDisplay();
   }
@@ -788,7 +830,7 @@ function revealAnswer() {
   } else {
     const q = currentQuestion;
     let answerText = q.answer;
-    if (q.type === 'compare') answerText = q.answer === 'left' ? '左が大きい' : (q.answer === 'right' ? '右が大きい' : '同じ大きさ');
+    if (q.type === 'compare') answerText = q.answerLabel || (q.answer === 'left' ? '左が大きい' : (q.answer === 'right' ? '右が大きい' : '同じ大きさ'));
     if (q.type === 'numberline') answerText = q.answer;
     setFeedback('こたえは ' + answerText + '。' + (q.explanation || ''), '', '？');
     session.locked = true;
@@ -822,7 +864,7 @@ function submitLegacyAnswer() {
     if (session.correct >= session.total) window.setTimeout(finishActivity, 650);
     else window.setTimeout(function () { renderGame(); }, 650);
   } else {
-    recordWrong('おしい！単位の関係を思い出して、もう一度。');
+    recordWrong(currentLegacyQuestion.wrongFeedback || 'おしい！単位の関係を思い出して、もう一度。');
   }
 }
 function nextLegacyQuestion() {
@@ -839,32 +881,33 @@ function makeLegacyTrainingQuestion(mode) {
   return {
     type: 'choice', prompt: old.prompt, answer: answer,
     choices: makeChoices(answer, distractors),
+    skillId: old.skillId, skillLabel: old.skillLabel, wrongFeedback: old.wrongFeedback,
     hint: mode === 'juice' ? '1 L = 10 dL。向きに合わせて10倍か10でわろう。'
       : (mode === 'ruler' ? '1 cm = 10 mm。向きに合わせて10倍か10でわろう。' : '0.1が何こ分かを数えよう。'),
     explanation: 'こたえは ' + answer + ' ' + old.unit + ' だよ。'
   };
 }
 function questionForMistake(mistake) {
-  const activity = ACTIVITIES.find(function (item) { return item.id === mistake.activityId; });
-  if (!activity) return questionFraction();
-  if (activity.type === 'legacy') return makeLegacyTrainingQuestion(activity.mode);
-  if (activity.type === 'match') return questionFraction();
-  if (activity.type === 'numberline') {
-    const nlGens = [questionNumberLine, questionNumberLineFraction, questionNumberLineRead];
-    return nlGens[randomInt(0, nlGens.length - 1)]();
-  }
-  if (activity.type === 'builder') return questionBuilder();
-  if (activity.type === 'compare') return Math.random() < .5 ? questionCompare() : questionCompareSmall();
+  const skillId = mistake.skillId || skillIdForActivity(mistake.activityId, mistake.mode);
+  const generators = {
+    'tenths-to-decimal': questionPiece, 'count-tenths': questionCountTenths, 'decimal-to-count': questionDecimalToCount,
+    'fraction-to-decimal': questionFraction, 'decimal-to-fraction': questionDecimalToFraction, 'build-tenths': questionBuilder,
+    'compare-tenths': function () { return Math.random() < .5 ? questionCompare() : questionCompareSmall(); },
+    'decimal-on-numberline': questionNumberLine, 'fraction-on-numberline': questionNumberLineFraction,
+    'read-numberline': questionNumberLineRead, 'complement-to-one': questionComplement
+  };
+  if (skillId.indexOf('legacy-') === 0) return makeLegacyTrainingQuestion(skillId.slice(7));
+  if (generators[skillId]) return generators[skillId]();
   const choices = [questionPiece, questionFraction, questionDecimalToFraction, questionNumberLine, questionNumberLineFraction, questionNumberLineRead, questionCompare, questionCompareSmall, questionComplement, questionDecimalToCount, questionBuilder];
   return choices[randomInt(0, choices.length - 1)]();
 }
 function startWeakTraining() {
-  const mistakes = state.mistakes.slice(-8).reverse();
+  const mistakes = state.mistakes.slice().sort(function (a, b) { return (b.attempts || 1) - (a.attempts || 1) || (b.lastSeenAt || b.createdAt || 0) - (a.lastSeenAt || a.createdAt || 0); }).slice(0, 8);
   if (!mistakes.length) { showToast('今は特訓する問題がないよ。'); return; }
   currentActivity = { id: 'weak-training', title: '弱点特訓', type: 'training', category: 'まちがえた内容を復習', questionCount: mistakes.length, badge: null };
   session = {
     id: 'weak-training', total: mistakes.length, correct: 0, attempts: 0, index: 0,
-    matched: 0, skipped: 0, revealed: 0, locked: false,
+    matched: 0, skipped: 0, revealed: 0, locked: false, skillLabels: [],
     questions: (function () {
       const seenKeys = new Set();
       return mistakes.map(function (mistake) {
