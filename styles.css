@@ -370,3 +370,22 @@ button { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   .feedback-row.good .feedback-mark, .effect-answer-celebrate, .result-panel, .match-card.matched { animation: none !important; }
 }
+
+
+/* Learning summary on the result screen */
+.result-learning {
+  width: min(560px, 100%);
+  margin: 12px auto 4px;
+  padding: 11px 15px;
+  border: 1px solid #e2eaf5;
+  border-radius: 13px;
+  background: #f6f9fe;
+  color: #536782;
+  font-size: 12px;
+  line-height: 1.65;
+  font-weight: 800;
+}
+.result-learning:empty { display: none; }
+@media (max-width: 700px) {
+  .result-learning { padding: 9px 11px; font-size: 11px; }
+}
