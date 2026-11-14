@@ -587,11 +587,11 @@ function renderRegularQuestion() {
       '<div class="compare-side"><strong>' + currentQuestion.left + '</strong>' + renderTenthsBar(currentQuestion.leftCount, '左のテープ') + '</div>' +
       '<div class="compare-side"><strong>' + currentQuestion.right + '</strong>' + renderTenthsBar(currentQuestion.rightCount, '右のテープ') + '</div></div>';
     if (currentQuestion.hideFigure) {
-      visual += '<div class="compare-visual compare-numbers-only" id="compare-numbers">' +
+      visual += '<div class="compare-hide-wrap"><div class="compare-visual compare-numbers-only" id="compare-numbers">' +
         '<div class="compare-side"><strong>' + currentQuestion.left + '</strong></div>' +
         '<div class="compare-side"><strong>' + currentQuestion.right + '</strong></div></div>' +
         '<div class="figure-toggle"><button type="button" class="soft-button" id="show-figure-button">図を見る</button></div>' +
-        '<div id="compare-figure" hidden>' + tapes + '</div>';
+        '<div id="compare-figure" hidden>' + tapes + '</div></div>';
     } else {
       visual += tapes;
     }
