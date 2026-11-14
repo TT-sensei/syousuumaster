@@ -854,6 +854,10 @@ function revealAnswer() {
     setFeedback('こたえは ' + answerText + '。' + (q.explanation || ''), '', '？');
     session.locked = true;
   }
+  if (currentActivity.type === 'training' && currentQuestion && currentQuestion.mistakeId) {
+    const trainingMistake = state.mistakes.find(function (mistake) { return mistake.id === currentQuestion.mistakeId; });
+    if (trainingMistake) { trainingMistake.masteryStreak = 0; saveState(); }
+  }
   session.revealed += 1;
   byId('next-after-reveal').hidden = false;
   byId('show-answer-button').hidden = true;
