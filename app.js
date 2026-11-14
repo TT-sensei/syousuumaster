@@ -632,6 +632,8 @@ function startActivity(id) {
   const activity = ACTIVITIES.find(function (item) { return item.id === id; });
   if (!activity) return;
   currentActivity = activity;
+  currentQuestion = null;
+  currentLegacyQuestion = null;
   session = {
     id: id, total: activity.questionCount, correct: 0, attempts: 0, index: 0,
     matched: 0, skipped: 0, revealed: 0, locked: false, questions: [], skillLabels: []
@@ -668,9 +670,9 @@ function finishActivity() {
   byId('result-title').textContent = currentActivity.type === 'training'
     ? (perfect ? '弱点クリア！' : '特訓終了！')
     : (perfect ? 'エリアマスター！' : 'チャレンジ終了！');
-  byId('result-message').textContent = perfect
-    ? 'すべて正解！小数の見方がぐんと身に付いたね。'
-    : '最後まで挑戦できたね。もう一度遊ぶと、もっと分かるよ。';
+  byId('result-message').textContent = currentActivity.type === 'training'
+    ? (perfect ? '苦手だった見方を、自分の力で確かめられたね！' : 'あと少し！同じ見方の問題に、また挑戦してみよう。')
+    : (perfect ? 'すべて正解！小数の見方がぐんと身に付いたね。' : '最後まで挑戦できたね。もう一度遊ぶと、もっと分かるよ。');
   byId('result-correct').textContent = String(session.correct);
   byId('result-total').textContent = ' / ' + session.total + ' 問正解';
   const learningBox = byId('result-learning');
@@ -735,6 +737,10 @@ function recordCorrect(explanation) {
 }
 function recordWrong(message) {
   session.attempts += 1;
+  if (currentActivity && currentActivity.type === 'training' && currentQuestion && currentQuestion.mistakeId) {
+    const trainingMistake = state.mistakes.find(function (mistake) { return mistake.id === currentQuestion.mistakeId; });
+    if (trainingMistake) { trainingMistake.attempts = (trainingMistake.attempts || 1) + 1; trainingMistake.lastSeenAt = Date.now(); saveState(); updateTrainingDisplay(); }
+  }
   if (currentActivity && currentActivity.type !== 'training') {
     const sourceQuestion = currentQuestion || currentLegacyQuestion;
     const skillId = sourceQuestion && sourceQuestion.skillId ? sourceQuestion.skillId : skillIdForActivity(currentActivity.id, currentActivity.mode);
@@ -905,6 +911,8 @@ function startWeakTraining() {
   const mistakes = state.mistakes.slice().sort(function (a, b) { return (b.attempts || 1) - (a.attempts || 1) || (b.lastSeenAt || b.createdAt || 0) - (a.lastSeenAt || a.createdAt || 0); }).slice(0, 8);
   if (!mistakes.length) { showToast('今は特訓する問題がないよ。'); return; }
   currentActivity = { id: 'weak-training', title: '弱点特訓', type: 'training', category: 'まちがえた内容を復習', questionCount: mistakes.length, badge: null };
+  currentQuestion = null;
+  currentLegacyQuestion = null;
   session = {
     id: 'weak-training', total: mistakes.length, correct: 0, attempts: 0, index: 0,
     matched: 0, skipped: 0, revealed: 0, locked: false, skillLabels: [],
