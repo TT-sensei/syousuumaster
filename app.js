@@ -392,7 +392,7 @@ function questionNumberLineFraction() {
     type: 'numberline', skillId: 'fraction-on-numberline', skillLabel: '十分のいくつを数直線に表す', prompt: n + '/10 はどこの目盛り？',
     answer: '0.' + n,
     wrongFeedback: '分数の分子の数だけ、0から右へ目盛りを数えよう.',
-    hint: n + '/10 は、0.1が' + n + 'こ分。左から' + n + 'つ目の目盛りを探そう。
+    hint: n + '/10 は、0.1が' + n + 'こ分。左から' + n + 'つ目の目盛りを探そう。',
     explanation: n + '/10 は 0.' + n + ' と同じ大きさ。0から数えて' + n + 'つ目の目盛りだよ。'
   };
 }
