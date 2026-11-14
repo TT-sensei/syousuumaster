@@ -702,6 +702,19 @@ function finishActivity() {
   byId('result-total').textContent = ' / ' + session.total + ' 問正解';
   const learningBox = byId('result-learning');
   if (learningBox) learningBox.textContent = session.skillLabels && session.skillLabels.length ? '今回使った見方：' + session.skillLabels.join(' ・ ') : '';
+  const wrongCount = Math.max(0, session.attempts - session.correct);
+  const detailBox = byId('result-detail');
+  if (detailBox) {
+    detailBox.textContent = '考え直した回数 ' + wrongCount + ' 回 ／ 答えを見て確かめた問題 ' + (session.revealed || 0) + ' 問';
+  }
+  const nextBox = byId('result-next-step');
+  if (nextBox) {
+    nextBox.textContent = perfect && wrongCount === 0 && !session.revealed
+      ? 'すばらしい！図や数直線を使って、自分の力で確かめられたね。'
+      : (session.revealed
+        ? '答えを見た問題は、もう一度自分で解けるか試してみよう。'
+        : (wrongCount ? '考え直した問題は、図や数直線を使ってもう一度確かめてみよう。' : '今回使った見方を、別の問題でも試してみよう。'));
+  }
   const badgeBox = byId('result-badge');
   if (lastBadge) {
     badgeBox.innerHTML = '<img src="' + lastBadge.image + '" alt=""><span>バッジ「' + lastBadge.name + '」をゲット！</span>';
