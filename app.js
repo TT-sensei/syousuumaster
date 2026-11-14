@@ -688,6 +688,8 @@ function finishActivity() {
   } else if (currentActivity.badge && badgeManager.has(currentActivity.badge)) {
     const def = BADGES.find(function (item) { return item.id === currentActivity.badge; });
     badgeBox.innerHTML = def ? '<img src="' + def.image + '" alt=""><span>獲得済みバッジ：' + def.name + '</span>' : '挑戦の記録が残ったよ！';
+  } else if (currentActivity.type === 'training') {
+    badgeBox.textContent = perfect ? '苦手克服！' : '次の特訓でリベンジしよう！';
   } else {
     badgeBox.textContent = perfect ? 'マスター達成！' : 'バッジ獲得まで、あと少し！';
   }
