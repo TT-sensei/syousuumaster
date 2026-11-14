@@ -293,6 +293,11 @@ function formatTenths(count) { return count === 10 ? '1.0' : '0.' + count; }
 function numberLineDistractors(correctCount) {
   return shuffled(Array.from({ length: 11 }, function (_, index) { return index; }).filter(function (n) { return n !== correctCount; })).slice(0, 3).map(formatTenths);
 }
+function numberLineExplanation(value, count) {
+  if (count === 0) return value + ' は数直線のはじめ、0の位置だよ。';
+  if (count === 10) return value + ' は数直線の右はし。0.1が10こ分で1だよ。';
+  return value + ' は、0から右へ' + count + 'つ進んだ目盛りだよ。';
+}
 function questionPiece() {
   const n = randomInt(1, 9);
   const correct = '0.' + n;
@@ -383,7 +388,7 @@ function questionNumberLine() {
     prompt: value + ' はどこの目盛り？', answer: value,
     wrongFeedback: '0と1の位置を確かめて、そこから目盛りをいくつ進むか数えよう。',
     hint: '0から1までを10こに分けた目盛りを、左から数えてみよう。',
-    explanation: value + ' は、0から数えて' + n + 'つ目の目盛りだよ。'
+    explanation: numberLineExplanation(value, n)
   };
 }
 function questionNumberLineFraction() {
@@ -391,7 +396,7 @@ function questionNumberLineFraction() {
   return {
     type: 'numberline', skillId: 'fraction-on-numberline', skillLabel: '十分のいくつを数直線に表す', prompt: n + '/10 はどこの目盛り？',
     answer: '0.' + n,
-    wrongFeedback: '分数の分子の数だけ、0から右へ目盛りを数えよう.',
+    wrongFeedback: '分数の分子の数だけ、0から右へ目盛りを数えよう。',
     hint: n + '/10 は、0.1が' + n + 'こ分。左から' + n + 'つ目の目盛りを探そう。',
     explanation: n + '/10 は 0.' + n + ' と同じ大きさ。0から数えて' + n + 'つ目の目盛りだよ。'
   };
@@ -405,7 +410,7 @@ function questionNumberLineRead() {
     choices: makeChoices(correct, numberLineDistractors(n)),
     wrongFeedback: '0から▼まで、目盛りをいくつ進んだか数えてみよう。右端は1だよ。',
     hint: '0から右へ、目盛りを1つずつ数えてみよう。',
-    explanation: '▼ は、0から数えて' + n + 'つ目の目盛り。' + correct + ' だよ。'
+    explanation: '▼ は、' + numberLineExplanation(correct, n)
   };
 }
 function questionComplement() {
